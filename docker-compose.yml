@@ -26,11 +26,38 @@ secrets:
     file: $DOCKERDIR/secrets/cloudflare_api_key
   cloudflare_email:
     file: $DOCKERDIR/secrets/cloudflare_email
+  mysql_root_password:
+    file: $DOCKERDIR/secrets/mysql_root_password
 
 ########################################################################
 ########################### SERVICES ###################################
 ########################################################################
 services:
+  ########################################################################
+  # Crowdsec - Open-source & collaborative security IPS
+  ########################################################################
+  crowdsec:
+    image: crowdsecurity/crowdsec
+    container_name: crowdsec
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+    ports:
+      - "8080:8080"
+      # - "$CROWDSEC_PROMETHEUS_EXPORT:6060" # For metrics export to Prometheus database.
+      # - "$ZEROTIER_IP_WEBSERVER:$CROWDSEC_PROMETHEUS_EXPORT:6060" # If you don't use ZeroTier remove use just $CROWDSEC_PROMETHEUS_EXPORT:6060
+    environment:
+      COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/iptables crowdsecurity/linux crowdsecurity/sshd"
+      GID: "${GID-1000}"
+      CUSTOM_HOSTNAME: Estalor
+    volumes:
+      - $DOCKERDIR/logs/cloudserver:/logs/web:ro
+      - /var/log:/var/log:ro
+      - $DOCKERDIR/appdata/crowdsec/data:/var/lib/crowdsec/data
+      - $DOCKERDIR/appdata/crowdsec/config:/etc/crowdsec
+
   ########################################################################
   # Portainer - WebUI for Containers
   ########################################################################
@@ -85,6 +112,32 @@ services:
       - RRTYPE=A
       - DELETE_ON_STOP=false
       - DNS_SERVER=1.1.1.1
+
+  ########################################################################
+  # MariaDB
+  ########################################################################
+  mariadb:
+    container_name: mariadb
+    image: lscr.io/linuxserver/mariadb
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+    volumes:
+      - $DOCKERDIR/appdata/mariadb/data:/config
+      # - $DOCKERDIR/shared/init:/docker-entrypoint-initdb.d
+      - $DOCKERDIR/shared/init/init.sql:/data/application/init.sql
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_DATABASE: crowdsec
+      MYSQL_USER: crowdsec
+      MYSQL_PASSWORD: crowdsec
+    secrets:
+      - mysql_root_password
 
   ########################################################################
   # DockerGC - Automatic cleanup of images and containers
@@ -282,7 +335,7 @@ services:
         ipv4_address: 192.168.91.254 # You can specify a static IP
     ports:
       - "127.0.0.1:2375:2375" # Port 2375 should only ever get exposed to the internal network. When possible use this line.
-    # I use the next line instead, as I want portainer to manage multiple docker endpoints within my home network.
+      # I use the next line instead, as I want portainer to manage multiple docker endpoints within my home network.
       # - "2375:2375"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
