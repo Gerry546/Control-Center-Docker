@@ -58,6 +58,19 @@ services:
       - $DOCKERDIR/appdata/crowdsec/data:/var/lib/crowdsec/data
       - $DOCKERDIR/appdata/crowdsec/config:/etc/crowdsec
 
+  # CrowdSec Bouncer - Cloudflare
+  # Set max ip number right the first time (max 10000). Recreating the container deletes all ips and readds them causing cloudflare 429 rate limiting.
+  cloudflare-bouncer:
+    image: crowdsecurity/cloudflare-bouncer
+    container_name: cloudflare-bouncer
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+    volumes:
+      - $DOCKERDIR/appdata/cloudflare-bouncer/cfg.yaml:/etc/crowdsec/bouncers/crowdsec-cloudflare-bouncer.yaml
+
   ########################################################################
   # Portainer - WebUI for Containers
   ########################################################################
