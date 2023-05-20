@@ -101,6 +101,8 @@ services:
     <<: *common-keys-core # See EXTENSION FIELDS at the top
     image: crowdsecurity/cloudflare-bouncer
     container_name: cloudflare-bouncer
+    depends_on:
+      - crowdsec
     volumes:
       - $DOCKERDIR/appdata/cloudflare-bouncer/cfg.yaml:/etc/crowdsec/bouncers/crowdsec-cloudflare-bouncer.yaml
 
@@ -110,6 +112,8 @@ services:
     <<: *common-keys-core # See EXTENSION FIELDS at the top
     image: fbonalair/traefik-crowdsec-bouncer
     container_name: traefik-bouncer
+    depends_on:
+      - crowdsec
     environment:
       GIN_MODE: release # default is debug (more logs)
       CROWDSEC_BOUNCER_API_KEY: $CROWDSEC_BOUNCER_TRAEFIK_API_KEY # sudo docker exec crowdsec cscli bouncers add traefik-bouncer
@@ -504,6 +508,11 @@ services:
       ## HTTP Services
       - "traefik.http.routers.wekan-rtr.service=wekan-svc"
       - "traefik.http.services.wekan-svc.loadbalancer.server.port=8080"
+    depends_on:
+      - wekandb
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - $DOCKERDIR/appdata/wekan-files:/data:rw
     environment:
       #-----------------------------------------------------------------
       # ==== WRITEABLE PATH FOR FILE UPLOADS ====
@@ -1059,8 +1068,3 @@ services:
       # Wait spinner to use
       # - WAIT_SPINNER=Bounce
       #---------------------------------------------------------------------
-    depends_on:
-      - wekandb
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - $DOCKERDIR/appdata/wekan-files:/data:rw
