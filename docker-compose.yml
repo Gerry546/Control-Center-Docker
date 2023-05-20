@@ -30,6 +30,27 @@ secrets:
     file: $DOCKERDIR/secrets/mysql_root_password
 
 ########################################################################
+########################### Extensions #################################
+########################################################################
+# Keys common to some of the services in basic-services.txt
+x-common-keys-core:
+  &common-keys-core
+  networks:
+    - home_internal
+  security_opt:
+    - no-new-privileges:true
+  restart: always
+
+# Keys common to some of the dependent services/apps
+x-common-keys-apps:
+  &common-keys-apps
+  networks:
+    - home_internal
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
+
+########################################################################
 ########################### SERVICES ###################################
 ########################################################################
 services:
@@ -37,13 +58,9 @@ services:
   # ITTools
   ########################################################################
   it-tools:
+    <<: *common-keys-apps # See EXTENSION FIELDS at the top
     image: corentinth/it-tools:latest
     container_name: it-tools
-    networks:
-      - home_internal
-    security_opt:
-      - no-new-privileges:true
-    restart: unless-stopped
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
@@ -61,13 +78,9 @@ services:
   # Crowdsec - Open-source & collaborative security IPS
   ########################################################################
   crowdsec:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
     image: crowdsecurity/crowdsec
     container_name: crowdsec
-    networks:
-      home_internal:
-    security_opt:
-      - no-new-privileges:true
-    restart: always
     ports:
       - "8080:8080"
       # - "$CROWDSEC_PROMETHEUS_EXPORT:6060" # For metrics export to Prometheus database.
@@ -85,26 +98,18 @@ services:
   # CrowdSec Bouncer - Cloudflare
   # Set max ip number right the first time (max 10000). Recreating the container deletes all ips and readds them causing cloudflare 429 rate limiting.
   cloudflare-bouncer:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
     image: crowdsecurity/cloudflare-bouncer
     container_name: cloudflare-bouncer
-    networks:
-      home_internal:
-    security_opt:
-      - no-new-privileges:true
-    restart: always
     volumes:
       - $DOCKERDIR/appdata/cloudflare-bouncer/cfg.yaml:/etc/crowdsec/bouncers/crowdsec-cloudflare-bouncer.yaml
 
   # CrowdSec Bouncer - Traefik
   # sudo docker exec crowdsec cscli bouncer add traefik-bouncer
   traefik-bouncer:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
     image: fbonalair/traefik-crowdsec-bouncer
     container_name: traefik-bouncer
-    networks:
-      home_internal:
-    security_opt:
-      - no-new-privileges:true
-    restart: always
     environment:
       GIN_MODE: release # default is debug (more logs)
       CROWDSEC_BOUNCER_API_KEY: $CROWDSEC_BOUNCER_TRAEFIK_API_KEY # sudo docker exec crowdsec cscli bouncers add traefik-bouncer
@@ -115,6 +120,7 @@ services:
   # Portainer - WebUI for Containers
   ########################################################################
   portainer:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: portainer
     image: portainer/portainer-ce:latest
     command: -H tcp://socket-proxy:2375
@@ -127,9 +133,6 @@ services:
     networks:
       home_internal:
       socket_proxy:
-    security_opt:
-      - no-new-privileges:true
-    restart: always
     depends_on:
       - socket-proxy
     labels:
@@ -149,13 +152,9 @@ services:
   # Cloudflare DDNS - Updater for cloudflare DDNS
   ########################################################################
   cf-ddns:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: cf-ddns
     image: oznu/cloudflare-ddns:latest
-    networks:
-      home_internal:
-    security_opt:
-      - no-new-privileges:true
-    restart: always
     secrets:
       - cloudflare_api_token
     environment:
@@ -170,13 +169,9 @@ services:
   # MariaDB
   ########################################################################
   mariadb:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: mariadb
     image: lscr.io/linuxserver/mariadb
-    networks:
-      home_internal:
-    security_opt:
-      - no-new-privileges:true
-    restart: always
     volumes:
       - $DOCKERDIR/appdata/mariadb/data:/config
       # - $DOCKERDIR/shared/init:/docker-entrypoint-initdb.d
@@ -196,14 +191,12 @@ services:
   # DockerGC - Automatic cleanup of images and containers
   ########################################################################
   dockergc:
+    <<: *common-keys-apps # See EXTENSION FIELDS at the top
     container_name: dockergc
     image: clockworksoul/docker-gc-cron:latest
     networks:
       home_internal:
       socket_proxy:
-    security_opt:
-      - no-new-privileges:true
-    restart: unless-stopped
     volumes:
       - $DOCKERDIR/appdata/docker-gc/docker-gc-exclude:/etc/docker-gc-exclude # Create empty file
     environment:
@@ -220,14 +213,12 @@ services:
   # Dozzle - Runtime insight in running containers
   ########################################################################
   dozzle:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: dozzle
     image: amir20/dozzle:latest
     networks:
       - home_internal
       - socket_proxy
-    security_opt:
-      - no-new-privileges:true
-    restart: always
     environment:
       DOZZLE_LEVEL: info
       DOZZLE_TAILSIZE: 300
@@ -250,15 +241,13 @@ services:
   # Heimdall - Container dashboard
   ########################################################################
   heimdall:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: heimdall
     image: lscr.io/linuxserver/heimdall
     command:
     networks:
       home_internal:
       socket_proxy:
-    security_opt:
-      - no-new-privileges:true
-    restart: always
     volumes:
       - $DOCKERDIR/appdata/heimdall:/config
     environment:
@@ -282,6 +271,7 @@ services:
   # Traefik - Reverse proxy
   ########################################################################
   traefik:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: traefik
     image: traefik:2.7
     command:
@@ -329,9 +319,6 @@ services:
     networks:
       home_internal:
         ipv4_address: 192.168.89.254 # You can specify a static IP
-    security_opt:
-      - no-new-privileges:true
-    restart: always
     ports:
       - target: 80
         published: 80
@@ -380,6 +367,7 @@ services:
   # Socket-proxy - Security Enchanced Proxy for Docker Socket
   ########################################################################
   socket-proxy:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: socket-proxy
     image: tecnativa/docker-socket-proxy
     networks:
@@ -429,13 +417,9 @@ services:
   # Watchtower - Automatic container updater
   ########################################################################
   watchtower:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: watchtower
     image: containrrr/watchtower
-    networks:
-      home_internal:
-    security_opt:
-      - no-new-privileges:true
-    restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro # If you use Docker Socket Proxy, comment this line out
     environment:
@@ -492,14 +476,10 @@ services:
   #-------------------------------------------------------------------------
 
   wekandb:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
     image: mongo:6
     container_name: wekan-db
-    restart: always
     command: mongod --logpath /dev/null --oplogSize 128 --quiet
-    networks:
-      - home_internal
-    security_opt:
-      - no-new-privileges:true
     expose:
       - 27017
     volumes:
@@ -509,13 +489,9 @@ services:
       - $DOCKERDIR/appdata/wekan-db-dump:/dump
 
   wekan:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
     image: quay.io/wekan/wekan
     container_name: wekan-app
-    security_opt:
-      - no-new-privileges:true
-    restart: always
-    networks:
-      - home_internal
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
