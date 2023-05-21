@@ -92,6 +92,8 @@ services:
       <<: *default-tz-puid-pgid
     security_opt:
       - no-new-privileges:true
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
     restart: always
     network_mode: host
     labels:
