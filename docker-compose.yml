@@ -63,6 +63,33 @@ x-common-keys-apps:
 ########################################################################
 services:
   ########################################################################
+  # HomeAssistant
+  ########################################################################
+  home-assistant:
+    container_name: home-assistant
+    image: ghcr.io/home-assistant/home-assistant:stable
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - $HAHOMEDIR:/config
+    environment:
+      <<: *default-tz-puid-pgid
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+    network_mode: host
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.homeassistant-rtr.entrypoints=https"
+      - "traefik.http.routers.homeassistant-rtr.rule=Host(`homeassistant.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.homeassistant-rtr.tls=true"
+      ## Middlewares
+      - "traefik.http.routers.homeassistant-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.homeassistant-rtr.service=homeassistant-svc"
+      - "traefik.http.services.homeassistant-svc.loadbalancer.server.port=8123"
+
+  ########################################################################
   # ITTools
   ########################################################################
   it-tools:
@@ -285,16 +312,13 @@ services:
     <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: heimdall
     image: lscr.io/linuxserver/heimdall
-    command:
     networks:
       home_internal:
       socket_proxy:
     volumes:
       - $DOCKERDIR/appdata/heimdall:/config
     environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+      <<: *default-tz-puid-pgid
       DOCKER_HOST: tcp://socket-proxy:2375 # Use this if you have Socket Proxy enabled.
     labels:
       - "traefik.enable=true"
@@ -360,6 +384,8 @@ services:
     networks:
       home_internal:
         ipv4_address: 192.168.89.254 # You can specify a static IP
+    extra_hosts:
+      - host.docker.internal:172.17.0.1
     ports:
       - target: 80
         published: 80
