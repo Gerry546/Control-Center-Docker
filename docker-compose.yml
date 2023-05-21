@@ -63,6 +63,23 @@ x-common-keys-apps:
 ########################################################################
 services:
   ########################################################################
+  # MQTT Broker
+  ########################################################################
+  mosquitto-mqtt:
+    <<: *common-keys-apps # See EXTENSION FIELDS at the top
+    container_name: mosquitto-mqtt
+    image: eclipse-mosquitto:latest
+    volumes:
+      - $DOCKERDIR/appdata/mosquitto:/mosquitto
+      - $DOCKERDIR/appdata/mosquitto/data:/mosquitto/data
+      - $DOCKERDIR/appdata/mosquitto/log:/mosquitto/log
+    ports:
+      - 1883:1883
+      - 9001:9001
+    environment:
+      <<: *default-tz-puid-pgid
+
+  ########################################################################
   # HomeAssistant
   ########################################################################
   home-assistant:
@@ -554,6 +571,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
       - $DOCKERDIR/appdata/wekan-db:/data/db
+      - $DOCKERDIR/appdata/wekan-db/configdb:/data/configdb
       - $DOCKERDIR/appdata/wekan-db-dump:/dump
 
   wekan:
