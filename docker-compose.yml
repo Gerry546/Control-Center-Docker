@@ -75,37 +75,37 @@ services:
   ########################################################################
   # Adguard
   ########################################################################
-  adguardhome:
-    <<: *common-keys-core # See EXTENSION FIELDS at the top
-    container_name: adguardhome
-    image: adguard/adguardhome
-    networks:
-      dockervlan:
-        ipv4_address: 192.168.1.199 # IP address inside defined range
-      home_internal:
-    ports:
-      - 53/udp
-      - 67/udp
-      - 68/tcp
-      - 68/udp
-      - 8080/tcp
-      - 443/tcp
-      - 853/tcp
-      - 3000/tcp
-    volumes:
-      - $DOCKERDIR/appdata/adguard/conf:/opt/adguardhome/conf
-      - $DOCKERDIR/appdata/adguard/work:/opt/adguardhome/work
-      - $DOCKERDIR/shared/certs/$DOMAINNAME_HOME_SYNOLOGY:/certs
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.adguard-rtr.entrypoints=https"
-      - "traefik.http.routers.adguard-rtr.rule=Host(`adguard.$DOMAINNAME_CLOUD_SERVER`)"
-      ## Middlewares
-      - "traefik.http.routers.adguard-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.adguard-rtr.service=adguard-svc"
-      - "traefik.http.services.adguard-svc.loadbalancer.server.port=8080"
+  # adguardhome:
+  #   <<: *common-keys-core # See EXTENSION FIELDS at the top
+  #   container_name: adguardhome
+  #   image: adguard/adguardhome
+  #   networks:
+  #     dockervlan:
+  #       ipv4_address: 192.168.1.199 # IP address inside defined range
+  #     home_internal:
+  #   ports:
+  #     - 53/udp
+  #     - 67/udp
+  #     - 68/tcp
+  #     - 68/udp
+  #     - 8080/tcp
+  #     # - 443/tcp
+  #     - 853/tcp
+  #     - 3000/tcp
+  #   volumes:
+  #     - $DOCKERDIR/appdata/adguard/conf:/opt/adguardhome/conf
+  #     - $DOCKERDIR/appdata/adguard/work:/opt/adguardhome/work
+  #     - $DOCKERDIR/shared/certs/$DOMAINNAME_HOME_SYNOLOGY:/certs
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.adguard-rtr.entrypoints=https"
+  #     - "traefik.http.routers.adguard-rtr.rule=Host(`adguard.$DOMAINNAME_CLOUD_SERVER`)"
+  #     ## Middlewares
+  #     - "traefik.http.routers.adguard-rtr.middlewares=chain-oauth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.adguard-rtr.service=adguard-svc"
+  #     - "traefik.http.services.adguard-svc.loadbalancer.server.port=8080"
 
   ########################################################################
   # NodeRed
