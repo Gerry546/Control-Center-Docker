@@ -201,7 +201,10 @@ services:
     devices:
       - /dev/ttyUSB0:/dev/ttyUSB0
     restart: always
-    network_mode: host
+    networks:
+      home_internal:
+      dockervlan:
+        ipv4_address: 192.168.1.199 # IP address inside the defined range
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
