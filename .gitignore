@@ -2,3 +2,4 @@ appdata
 logs
 .env
 shared/.htpasswd
+secrets
