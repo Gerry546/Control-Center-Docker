@@ -72,6 +72,7 @@ services:
     volumes:
       - $DOCKERDIR:/data/docker
       - $HAHOMEDIR:/data/homeassistant
+      - $HOMEDIR:/data/home
       - $DOCKERDIR/appdata/vscode:/config
     environment:
       <<: *default-tz-puid-pgid
