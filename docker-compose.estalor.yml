@@ -35,11 +35,15 @@ services:
     <<: *common-keys-core # See EXTENSION FIELDS at the top
     image: estalor-yocto:latest
     container_name: estalor-yocto
-    stdin_open: true
-    tty: true
+    ports:
+      - 23:22
     networks:
       home_internal:
         ipv4_address: 192.168.89.252 # You can specify a static IP
     volumes:
       - $YOCTOCACHEDIR:/cache
-      - $DOCKERDIR/appdata/estalor-yocto:/home/yocto
+      - $DOCKERDIR/appdata/estalor-yocto:/home/yocto/workspace
+      - $HOMEDIR/projects/Estalor-Yocto:/home/yocto/project
+    labels:
+      ## Watchtower manual update
+      - "com.centurylinklabs.watchtower.enable=false"

@@ -58,6 +58,8 @@ services:
       ## HTTP Services
       - "traefik.http.routers.nodered-rtr.service=nodered-svc"
       - "traefik.http.services.nodered-svc.loadbalancer.server.port=1880"
+      ## Watchtower manual update
+      - "com.centurylinklabs.watchtower.enable=false"
 
   ########################################################################
   # MQTT Broker
@@ -111,3 +113,5 @@ services:
       ## HTTP Services
       - "traefik.http.routers.homeassistant-rtr.service=homeassistant-svc"
       - "traefik.http.services.homeassistant-svc.loadbalancer.server.port=8123"
+      ## Watchtower manual update
+      - "com.centurylinklabs.watchtower.enable=false"
