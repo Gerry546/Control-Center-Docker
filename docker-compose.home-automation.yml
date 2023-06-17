@@ -99,9 +99,9 @@ services:
     restart: always
     networks:
       home_internal:
-        ipv4_address: 192.168.89.16 # Otherwise NodeRed won't know where to look
+        ipv4_address: 192.168.89.251 # Otherwise NodeRed won't know where to look
       dockervlan:
-        ipv4_address: 192.168.1.199 # IP address inside the defined range
+        ipv4_address: 192.168.1.199 # IP address inside the defined rangeIp
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
