@@ -37,15 +37,12 @@ services:
   socket-proxy:
     <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: socket-proxy
-    image: tecnativa/docker-socket-proxy
+    image: tecnativa/docker-socket-proxy:latest
     networks:
-      home_internal:
       socket_proxy:
         ipv4_address: 192.168.91.254 # You can specify a static IP
     ports:
-      - "127.0.0.1:2375:2375" # Port 2375 should only ever get exposed to the internal network. When possible use this line.
-      # I use the next line instead, as I want portainer to manage multiple docker endpoints within my home network.
-      # - "2375:2375"
+      - "127.0.0.1:2375:2375" # Port 2375 should only ever get exposed to the internal network
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
     environment:
@@ -120,7 +117,7 @@ services:
   mariadb:
     <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: mariadb
-    image: lscr.io/linuxserver/mariadb
+    image: lscr.io/linuxserver/mariadb:latest
     volumes:
       - $DOCKERDIR/appdata/mariadb/data:/config
       # - $DOCKERDIR/shared/init:/docker-entrypoint-initdb.d
@@ -139,7 +136,7 @@ services:
   ########################################################################
   crowdsec:
     <<: *common-keys-core # See EXTENSION FIELDS at the top
-    image: crowdsecurity/crowdsec
+    image: crowdsecurity/crowdsec:latest
     container_name: crowdsec
     ports:
       - "8080:8080"
@@ -159,7 +156,7 @@ services:
   # Set max ip number right the first time (max 10000). Recreating the container deletes all ips and readds them causing cloudflare 429 rate limiting.
   cloudflare-bouncer:
     <<: *common-keys-core # See EXTENSION FIELDS at the top
-    image: crowdsecurity/cloudflare-bouncer
+    image: crowdsecurity/cloudflare-bouncer:latest
     container_name: cloudflare-bouncer
     depends_on:
       - crowdsec
@@ -170,7 +167,7 @@ services:
   # sudo docker exec crowdsec cscli bouncer add traefik-bouncer
   traefik-bouncer:
     <<: *common-keys-core # See EXTENSION FIELDS at the top
-    image: fbonalair/traefik-crowdsec-bouncer
+    image: fbonalair/traefik-crowdsec-bouncer:latest
     container_name: traefik-bouncer
     depends_on:
       - crowdsec

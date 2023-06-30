@@ -116,11 +116,11 @@ services:
     image: portainer/portainer-ce:latest
     command: -H tcp://socket-proxy:2375
     volumes:
-      - $DOCKERDIR/appdata/portainer/data:/data # Change to local directory if you want to save/transfer config locally.
+      - $DOCKERDIR/appdata/portainer/data:/data
     environment:
       - TZ=$TZ
     ports:
-      - '9000:9000'
+      - "9000:9000"
     networks:
       home_internal:
       socket_proxy:
@@ -164,12 +164,11 @@ services:
     container_name: dockergc
     image: clockworksoul/docker-gc-cron:latest
     networks:
-      home_internal:
       socket_proxy:
     volumes:
       - $DOCKERDIR/appdata/docker-gc/docker-gc-exclude:/etc/docker-gc-exclude # Create empty file
     environment:
-      DOCKER_HOST: tcp://socket-proxy:2375 # Use this if you have Socket Proxy enabled.
+      DOCKER_HOST: tcp://socket-proxy:2375
       CRON: 0 0 0 * * ? # Everyday at midnight. Previously 0 0 * * *
       FORCE_IMAGE_REMOVAL: 1
       FORCE_CONTAINER_REMOVAL: 0
@@ -184,7 +183,7 @@ services:
   heimdall:
     <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: heimdall
-    image: lscr.io/linuxserver/heimdall
+    image: lscr.io/linuxserver/heimdall:latest
     networks:
       home_internal:
       socket_proxy:
@@ -192,7 +191,7 @@ services:
       - $DOCKERDIR/appdata/heimdall:/config
     environment:
       <<: *default-tz-puid-pgid
-      DOCKER_HOST: tcp://socket-proxy:2375 # Use this if you have Socket Proxy enabled.
+      DOCKER_HOST: tcp://socket-proxy:2375
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
@@ -211,7 +210,7 @@ services:
   traefik:
     <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: traefik
-    image: traefik:2.7
+    image: traefik:2.9
     command:
       # CLI arguments
       - --global.checkNewVersion=true
@@ -227,18 +226,18 @@ services:
       # - --serversTransport.insecureSkipVerify=true
       - --log=true
       - --log.filePath=/logs/traefik.log
-      - --log.level=DEBUG # (Default: error) DEBUG, INFO, WARN, ERROR, FATAL, PANIC
+      - --log.level=INFO # (Default: error) DEBUG, INFO, WARN, ERROR, FATAL, PANIC
       - --accessLog=true
       - --accessLog.filePath=/logs/access.log
       - --accessLog.bufferingSize=100 # Configuring a buffer of 100 lines
       - --accessLog.filters.statusCodes=204-299,400-499,500-599
       - --providers.docker=true
       # - --providers.docker.endpoint=unix:///var/run/docker.sock # Use Docker Socket Proxy instead for improved security
-      - --providers.docker.endpoint=tcp://socket-proxy:2375 # Use this instead of the previous line if you have socket proxy.
+      - --providers.docker.endpoint=tcp://socket-proxy:2375
       - --providers.docker.exposedByDefault=false
       - --entrypoints.https.http.tls.options=tls-opts@file
       # Add dns-cloudflare as default certresolver for all services. Also enables TLS and no need to specify on individual services
-      # - --entrypoints.https.http.tls.certresolver=dns-cloudflare
+      - --entrypoints.https.http.tls.certresolver=dns-cloudflare
       - --entrypoints.https.http.tls.domains[0].main=$DOMAINNAME_CLOUD_SERVER
       - --entrypoints.https.http.tls.domains[0].sans=*.$DOMAINNAME_CLOUD_SERVER
       # - --entrypoints.https.http.tls.domains[1].main=$DOMAINNAME2 # Pulls main cert for second domain
@@ -257,8 +256,9 @@ services:
     networks:
       home_internal:
         ipv4_address: 192.168.89.254 # You can specify a static IP
-    extra_hosts:
-      - host.docker.internal:172.17.0.1
+      socket_proxy:
+        # extra_hosts:
+        #   - host.docker.internal:172.17.0.1
     ports:
       - target: 80
         published: 80
@@ -270,7 +270,7 @@ services:
         mode: host
     volumes:
       - $DOCKERDIR/appdata/traefik2/rules/cloudserver:/rules # file provider directory
-      - /var/run/docker.sock:/var/run/docker.sock:ro # If you use Docker Socket Proxy, comment this line out
+      # - /var/run/docker.sock:/var/run/docker.sock:ro # If you use Docker Socket Proxy, comment this line out
       - $DOCKERDIR/appdata/traefik2/acme/acme.json:/acme.json # cert location - you must create this empty file and change permissions to 600
       - $DOCKERDIR/logs/cloudserver/traefik:/logs # for fail2ban or crowdsec
       - $DOCKERDIR/shared:/shared
@@ -310,9 +310,9 @@ services:
   watchtower:
     <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: watchtower
-    image: containrrr/watchtower
+    image: containrrr/watchtower:latest
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro # If you use Docker Socket Proxy, comment this line out
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       TZ: $TZ
       WATCHTOWER_CLEANUP: "true"

@@ -37,7 +37,7 @@ services:
   nodered:
     <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: nodered
-    image: nodered/node-red
+    image: nodered/node-red:latest
     restart: unless-stopped
     environment:
       <<: *default-tz-puid-pgid
