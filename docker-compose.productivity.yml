@@ -113,7 +113,7 @@ services:
       # ==== WRITEABLE PATH FOR FILE UPLOADS ====
       - WRITABLE_PATH=/data
       # ==== MONGO_URL ====
-      - MONGO_URL=mongodb://wekandb:$WEKABDB_PORT/wekan
+      - MONGO_URL=mongodb://wekandb:$WEKANDB_PORT/wekan
       #---------------------------------------------------------------
       # ==== ROOT_URL SETTING ====
       - ROOT_URL=http://localhost #   <=== using only at same laptop/desktop where Wekan is installed

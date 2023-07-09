@@ -114,12 +114,12 @@ services:
   ########################################################################
   # MariaDB
   ########################################################################
-  mariadb:
+  mariadb-crowdsec:
     <<: *common-keys-core # See EXTENSION FIELDS at the top
-    container_name: mariadb
+    container_name: mariadb-crowdsec
     image: lscr.io/linuxserver/mariadb:latest
     volumes:
-      - $DOCKERDIR/appdata/mariadb/data:/config
+      - $DOCKERDIR/appdata/mariadb-crowdsec/data:/config
       # - $DOCKERDIR/shared/init:/docker-entrypoint-initdb.d
       - $DOCKERDIR/shared/init/init.sql:/data/application/init.sql
     environment:

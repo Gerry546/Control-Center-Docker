@@ -135,3 +135,57 @@ services:
       ## HTTP Services
       - "traefik.http.routers.dozzle-rtr.service=dozzle-svc"
       - "traefik.http.services.dozzle-svc.loadbalancer.server.port=8080"
+
+  ########################################################################
+  # MariaDB - MySQL Database for Guacamole
+  ########################################################################
+  mariadb-guacemole:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
+    container_name: mariadb-guacemole
+    image: lscr.io/linuxserver/mariadb:latest
+#    ports:
+#      - "3306:3306"
+    volumes:
+      - $DOCKERDIR/appdata/mariadb-guacemole/data:/config
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      <<: *default-tz-puid-pgid
+      MYSQL_ROOT_PASSWORD: $GUACEMOLE_PASSWORD
+
+  ########################################################################
+  # Guacd - Guacamole daemon
+  ########################################################################
+  guacd:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
+    image: guacamole/guacd
+    container_name: guacd
+
+  ########################################################################
+  # Guacamole - Remote desktop, SSH, on Telnet on any HTML5 Browser
+  ########################################################################
+  # Create all databases and tables first
+  guacamole:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
+    image: guacamole/guacamole:latest
+    container_name: guacamole
+    # ports:
+    #   - "$GUACAMOLE_PORT:8080"
+    environment:
+      GUACD_HOSTNAME: guacd
+      MYSQL_HOSTNAME: mariadb-guacemole
+      MYSQL_PORT: $GUACDB_PORT
+      MYSQL_DATABASE: guacemole
+      MYSQL_USER: $GUAC_MYSQL_USER
+      MYSQL_PASSWORD: $GUACEMOLE_PASSWORD
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.guacamole-rtr.entrypoints=https"
+      - "traefik.http.routers.guacamole-rtr.rule=Host(`guacamole.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.guacamole-rtr.tls=true"
+      ## Middlewares
+      - "traefik.http.routers.guacamole-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.guacamole-rtr.service=guacamole-svc"
+      - "traefik.http.services.guacamole-svc.loadbalancer.server.port=8080"
