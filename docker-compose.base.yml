@@ -210,7 +210,7 @@ services:
   traefik:
     <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: traefik
-    image: traefik:2.9
+    image: traefik
     command:
       # CLI arguments
       - --global.checkNewVersion=true

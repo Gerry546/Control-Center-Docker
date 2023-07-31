@@ -96,6 +96,8 @@ services:
       - no-new-privileges:true
     devices:
       - /dev/ttyUSB0:/dev/ttyUSB0
+    depends_on:
+      - traefik
     restart: always
     networks:
       home_internal:
@@ -115,3 +117,30 @@ services:
       - "traefik.http.services.homeassistant-svc.loadbalancer.server.port=8123"
       ## Watchtower manual update
       - "com.centurylinklabs.watchtower.enable=false"
+
+  ########################################################################
+  # File Browser - Explorer
+  ########################################################################
+  filebrowser:
+    <<: *common-keys-apps # See EXTENSION FIELDS at the top
+    image: filebrowser/filebrowser:s6
+    container_name: filebrowser
+    ports:
+      - "81:80"
+    volumes:
+      - $DOCKERDIR/appdata/filebrowser:/config
+      - $EXTDRIVE:/srv
+      - $DOCKERDIR/appdata/filebrowser/database:/database/
+    environment:
+      <<: *default-tz-puid-pgid
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.filebrowser-rtr.entrypoints=https"
+      - "traefik.http.routers.filebrowser-rtr.rule=Host(`fb.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.filebrowser-rtr.tls=true"
+      ## Middlewares
+      - "traefik.http.routers.filebrowser-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.filebrowser-rtr.service=filebrowser-svc"
+      - "traefik.http.services.filebrowser-svc.loadbalancer.server.port=80"
