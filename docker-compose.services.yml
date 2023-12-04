@@ -5,39 +5,40 @@ version: "3.9"
 ########################################################################
 services:
   ########################################################################
-  # Jenkins
+  # Gitlab
   ########################################################################
-  jenkins:
-    image: jenkins/jenkins:lts
-    ports:
-      - 8081:8080
-      # - 50000:50000
-    container_name: jenkins
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    container_name: gitlab
     networks:
       home_internal:
-      socket_proxy:
-    restart: always
     security_opt:
       - no-new-privileges:true
-    environment:
-      DOCKER_HOST: tcp://socket-proxy:2375 # Use this if you have Socket Proxy enabled.
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+    restart: always
+    hostname: gitlab.estalor.com
     volumes:
-      - $DOCKERDIR/appdata/jenkins:/var/jenkins_home
+      - $GITLAB_HOME/data:/var/opt/gitlab
+      - $GITLAB_HOME/logs:/var/log/gitlab
+      - $GITLAB_HOME/config:/etc/gitlab
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'https://gitlab.estalor.com'
+        nginx['listen_port'] = 80
+        nginx['listen_https'] = false
+        nginx['proxy_set_headers'] = {
+          "X-Forwarded-Proto" => "https",
+          "X-Forwarded-Ssl" => "on"
+        }
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
-      - "traefik.http.routers.jenkins-rtr.entrypoints=https"
-      - "traefik.http.routers.jenkins-rtr.rule=Host(`jenkins.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.gitlab-rtr.entrypoints=https"
+      - "traefik.http.routers.gitlab-rtr.rule=Host(`gitlab.$DOMAINNAME_CLOUD_SERVER`)"
       ## Middlewares
-      - "traefik.http.routers.jenkins-rtr.middlewares=chain-oauth@file"
+      - "traefik.http.routers.gitlab-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
-      - "traefik.http.routers.jenkins-rtr.service=jenkins-svc"
-      - "traefik.http.services.jenkins-svc.loadbalancer.server.port=8080"
-      ## Watchtower manual update
-      - "com.centurylinklabs.watchtower.enable=false"
+      - "traefik.http.routers.gitlab-rtr.service=gitlab-svc"
+      - "traefik.http.services.gitlab-svc.loadbalancer.server.port=80"
 
   ########################################################################
   # VSCode
@@ -192,7 +193,6 @@ services:
       - socket_proxy
     environment:
       DOZZLE_LEVEL: info
-      DOZZLE_TAILSIZE: 300
       DOZZLE_FILTER: "status=running"
       DOCKER_HOST: tcp://socket-proxy:2375
     security_opt:
