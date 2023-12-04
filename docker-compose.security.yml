@@ -1,88 +1,123 @@
 version: "3.9"
 
 ########################################################################
-########################### Extensions #################################
+########################### Secrets ####################################
 ########################################################################
-x-environment:
-  &default-tz-puid-pgid
-  TZ: $TZ
-  PUID: $PUID
-  PGID: $PGID
+secrets:
+  cloudflare_api_token:
+    file: $DOCKERDIR/secrets/cloudflare_api_token
+  cloudflare_api_key:
+    file: $DOCKERDIR/secrets/cloudflare_api_key
+  cloudflare_email:
+    file: $DOCKERDIR/secrets/cloudflare_email
+  mysql_root_password:
+    file: $DOCKERDIR/secrets/mysql_root_password
+  traefik_forward_auth:
+    file: $DOCKERDIR/secrets/traefik_forward_auth
 
-# Keys common to some of the services in basic-services.txt
-x-common-keys-core:
-  &common-keys-core
-  networks:
-    - home_internal
-  security_opt:
-    - no-new-privileges:true
-  restart: always
-
-# Keys common to some of the dependent services/apps
-x-common-keys-apps:
-  &common-keys-apps
-  networks:
-    - home_internal
-  security_opt:
-    - no-new-privileges:true
-  restart: unless-stopped
-
-########################################################################
-########################### SERVICES ###################################
-########################################################################
 services:
   ########################################################################
-  # Socket-proxy - Security Enchanced Proxy for Docker Socket
+  # Traefik - Reverse proxy
   ########################################################################
-  socket-proxy:
-    <<: *common-keys-core # See EXTENSION FIELDS at the top
-    container_name: socket-proxy
-    image: tecnativa/docker-socket-proxy:latest
+  traefik:
+    container_name: traefik
+    image: traefik
+    command:
+      # CLI arguments
+      - --global.checkNewVersion=true
+      - --global.sendAnonymousUsage=true
+      - --entryPoints.http.address=:80
+      - --entryPoints.https.address=:443
+      # Allow these IPs to set the X-Forwarded-* headers - Cloudflare IPs: https://www.cloudflare.com/ips/
+      - --entrypoints.https.forwardedHeaders.trustedIPs=$CLOUDFLARE_IPS,$LOCAL_IPS
+      - --entryPoints.traefik.address=:8080
+      - --api=true
+      # - --api.insecure=true
+      - --api.dashboard=true
+      # - --serversTransport.insecureSkipVerify=true
+      - --log=true
+      - --log.filePath=/logs/traefik.log
+      - --log.level=INFO # (Default: error) DEBUG, INFO, WARN, ERROR, FATAL, PANIC
+      - --accessLog=true
+      - --accessLog.filePath=/logs/access.log
+      - --accessLog.bufferingSize=100 # Configuring a buffer of 100 lines
+      - --accessLog.filters.statusCodes=204-299,400-499,500-599
+      - --providers.docker=true
+      # - --providers.docker.endpoint=unix:///var/run/docker.sock # Use Docker Socket Proxy instead for improved security
+      - --providers.docker.endpoint=tcp://socket-proxy:2375
+      - --providers.docker.exposedByDefault=false
+      - --entrypoints.https.http.tls.options=tls-opts@file
+      # Add dns-cloudflare as default certresolver for all services. Also enables TLS and no need to specify on individual services
+      - --entrypoints.https.http.tls.certresolver=dns-cloudflare
+      - --entrypoints.https.http.tls.domains[0].main=$DOMAINNAME_CLOUD_SERVER
+      - --entrypoints.https.http.tls.domains[0].sans=*.$DOMAINNAME_CLOUD_SERVER
+      # - --entrypoints.https.http.tls.domains[1].main=$DOMAINNAME2 # Pulls main cert for second domain
+      # - --entrypoints.https.http.tls.domains[1].sans=*.$DOMAINNAME2 # Pulls wildcard cert for second domain
+      - --providers.docker.network=home_internal
+      - --providers.docker.swarmMode=false
+      - --providers.file.directory=/rules # Load dynamic configuration from one or more .toml or .yml files in a directory
+      # - --providers.file.filename=/path/to/file # Load dynamic configuration from a file
+      - --providers.file.watch=true # Only works on top level files in the rules folder
+      # - --certificatesResolvers.dns-cloudflare.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory # LetsEncrypt Staging Server - uncomment when testing
+      - --certificatesResolvers.dns-cloudflare.acme.email=$CLOUDFLARE_EMAIL
+      - --certificatesResolvers.dns-cloudflare.acme.storage=/acme.json
+      - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.provider=cloudflare
+      - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.resolvers=1.1.1.1:53,1.0.0.1:53
+      - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.delayBeforeCheck=90 # To delay DNS check and reduce LE hitrate
     networks:
+      home_internal:
+        ipv4_address: 192.168.89.254 # You can specify a static IP
       socket_proxy:
-        ipv4_address: 192.168.91.254 # You can specify a static IP
+        # extra_hosts:
+        #   - host.docker.internal:172.17.0.1
+    security_opt:
+      - no-new-privileges:true
+    restart: always
     ports:
-      - "127.0.0.1:2375:2375" # Port 2375 should only ever get exposed to the internal network
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
+      - $DOCKERDIR/appdata/traefik2/rules/cloudserver:/rules # file provider directory
+      - $DOCKERDIR/appdata/traefik2/acme/acme.json:/acme.json # cert location - you must create this empty file and change permissions to 600
+      - $DOCKERDIR/logs/cloudserver/traefik:/logs # for fail2ban or crowdsec
+      - $DOCKERDIR/shared:/shared
+    secrets:
+      - cloudflare_api_key
+      - cloudflare_email
     environment:
-      - LOG_LEVEL=info # debug,info,notice,warning,err,crit,alert,emerg
-      ## Variables match the URL prefix (i.e. AUTH blocks access to /auth/* parts of the API, etc.).
-      # 0 to revoke access.
-      # 1 to grant access.
-      ## Granted by Default
-      - EVENTS=1
-      - PING=1
-      - VERSION=1
-      ## Revoked by Default
-      # Security critical
-      - AUTH=0
-      - SECRETS=0
-      - POST=1 # Watchtower
-      # Not always needed
-      - BUILD=0
-      - COMMIT=0
-      - CONFIGS=0
-      - CONTAINERS=1 # Traefik, portainer, etc.
-      - DISTRIBUTION=0
-      - EXEC=0
-      - IMAGES=1 # Portainer
-      - INFO=1 # Portainer
-      - NETWORKS=1 # Portainer
-      - NODES=0
-      - PLUGINS=0
-      - SERVICES=1 # Portainer
-      - SESSION=0
-      - SWARM=0
-      - SYSTEM=0
-      - TASKS=1 # Portainer
-      - VOLUMES=1 # Portainer
+      - TZ=$TZ
+      - CF_API_EMAIL_FILE=/run/secrets/cloudflare_email
+      - CF_API_KEY_FILE=/run/secrets/cloudflare_api_key
+      - DOMAINNAME_CLOUD_SERVER # Passing the domain name to the traefik container to be able to use the variable in rules.
+    labels:
+      - "traefik.enable=true"
+      # HTTP-to-HTTPS Redirect
+      - "traefik.http.routers.http-catchall.entrypoints=http"
+      - "traefik.http.routers.http-catchall.rule=HostRegexp(`{host:.+}`)"
+      - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      # HTTP Routers
+      - "traefik.http.routers.traefik-rtr.entrypoints=https"
+      - "traefik.http.routers.traefik-rtr.rule=Host(`traefik.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.traefik-rtr.tls=true" # Some people had 404s without this
+      # - "traefik.http.routers.traefik-rtr.tls.certresolver=dns-cloudflare" # Comment out this line after first run of traefik to force the use of wildcard certs
+      - "traefik.http.routers.traefik-rtr.tls.domains[0].main=$DOMAINNAME_CLOUD_SERVER"
+      - "traefik.http.routers.traefik-rtr.tls.domains[0].sans=*.$DOMAINNAME_CLOUD_SERVER"
+      ## Services - API
+      - "traefik.http.routers.traefik-rtr.service=api@internal"
+      ## Middlewares
+      - "traefik.http.routers.traefik-rtr.middlewares=chain-oauth@file"
 
   ########################################################################
   # Google OAuth - Single Sign On using OAuth 2.0
   ########################################################################
   oauth:
-    <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: oauth
     image: thomseddon/traefik-forward-auth:latest
     environment:
@@ -96,6 +131,11 @@ services:
       - LIFETIME=86400 # 1 day
       - DEFAULT_ACTION=auth
       - DEFAULT_PROVIDER=google
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: always
     secrets:
       - source: traefik_forward_auth
         target: /config
@@ -112,36 +152,20 @@ services:
       - "traefik.http.services.oauth-svc.loadbalancer.server.port=4181"
 
   ########################################################################
-  # MariaDB
-  ########################################################################
-  mariadb-crowdsec:
-    <<: *common-keys-core # See EXTENSION FIELDS at the top
-    container_name: mariadb-crowdsec
-    image: lscr.io/linuxserver/mariadb:latest
-    volumes:
-      - $DOCKERDIR/appdata/mariadb-crowdsec/data:/config
-      # - $DOCKERDIR/shared/init:/docker-entrypoint-initdb.d
-      - $DOCKERDIR/shared/init/init.sql:/data/application/init.sql
-    environment:
-      <<: *default-tz-puid-pgid
-      FILE__MYSQL_ROOT_PASSWORD: /run/secrets/mysql_root_password # Note FILE__ (double underscore) - Issue #127
-      MYSQL_DATABASE: crowdsec
-      MYSQL_USER: crowdsec
-      MYSQL_PASSWORD: crowdsec
-    secrets:
-      - mysql_root_password
-
-  ########################################################################
   # Crowdsec - Open-source & collaborative security IPS
   ########################################################################
   crowdsec:
-    <<: *common-keys-core # See EXTENSION FIELDS at the top
     image: crowdsecurity/crowdsec:latest
     container_name: crowdsec
     ports:
       - "8080:8080"
       # - "$CROWDSEC_PROMETHEUS_EXPORT:6060" # For metrics export to Prometheus database.
       # - "$ZEROTIER_IP_WEBSERVER:$CROWDSEC_PROMETHEUS_EXPORT:6060" # If you don't use ZeroTier remove use just $CROWDSEC_PROMETHEUS_EXPORT:6060
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: always
     environment:
       COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/iptables crowdsecurity/linux crowdsecurity/sshd"
       GID: "${GID-1000}"
@@ -155,24 +179,53 @@ services:
   # CrowdSec Bouncer - Cloudflare
   # Set max ip number right the first time (max 10000). Recreating the container deletes all ips and readds them causing cloudflare 429 rate limiting.
   cloudflare-bouncer:
-    <<: *common-keys-core # See EXTENSION FIELDS at the top
     image: crowdsecurity/cloudflare-bouncer:latest
     container_name: cloudflare-bouncer
     depends_on:
       - crowdsec
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: always
     volumes:
       - $DOCKERDIR/appdata/cloudflare-bouncer/cfg.yaml:/etc/crowdsec/bouncers/crowdsec-cloudflare-bouncer.yaml
 
   # CrowdSec Bouncer - Traefik
   # sudo docker exec crowdsec cscli bouncer add traefik-bouncer
   traefik-bouncer:
-    <<: *common-keys-core # See EXTENSION FIELDS at the top
     image: fbonalair/traefik-crowdsec-bouncer:latest
     container_name: traefik-bouncer
     depends_on:
       - crowdsec
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: always
     environment:
       GIN_MODE: release # default is debug (more logs)
       CROWDSEC_BOUNCER_API_KEY: $CROWDSEC_BOUNCER_TRAEFIK_API_KEY # sudo docker exec crowdsec cscli bouncers add traefik-bouncer
       CROWDSEC_AGENT_HOST: crowdsec:8080 # CrowdSec host and port
       CROWDSEC_BOUNCER_LOG_LEVEL: 2 # https://pkg.go.dev/github.com/rs/zerolog#readme-leveled-logging
+
+  ########################################################################
+  # Cloudflare DDNS - Updater for cloudflare DDNS
+  ########################################################################
+  cf-ddns:
+    container_name: cf-ddns
+    image: oznu/cloudflare-ddns:latest
+    secrets:
+      - cloudflare_api_token
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+    environment:
+      - API_KEY_FILE=/run/secrets/cloudflare_api_token
+      - ZONE=$DOMAINNAME_CLOUD_SERVER
+      - PROXIED=true
+      - RRTYPE=A
+      - DELETE_ON_STOP=false
+      - DNS_SERVER=1.1.1.1

@@ -18,15 +18,6 @@ x-common-keys-core:
     - no-new-privileges:true
   restart: always
 
-# Keys common to some of the dependent services/apps
-x-common-keys-apps:
-  &common-keys-apps
-  networks:
-    - home_internal
-  security_opt:
-    - no-new-privileges:true
-  restart: unless-stopped
-
 ########################################################################
 ########################### SERVICES ###################################
 ########################################################################

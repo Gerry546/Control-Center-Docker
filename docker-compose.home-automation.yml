@@ -1,33 +1,6 @@
 version: "3.9"
 
 ########################################################################
-########################### Extensions #################################
-########################################################################
-x-environment:
-  &default-tz-puid-pgid
-  TZ: $TZ
-  PUID: $PUID
-  PGID: $PGID
-
-# Keys common to some of the services in basic-services.txt
-x-common-keys-core:
-  &common-keys-core
-  networks:
-    - home_internal
-  security_opt:
-    - no-new-privileges:true
-  restart: always
-
-# Keys common to some of the dependent services/apps
-x-common-keys-apps:
-  &common-keys-apps
-  networks:
-    - home_internal
-  security_opt:
-    - no-new-privileges:true
-  restart: unless-stopped
-
-########################################################################
 ########################### SERVICES ###################################
 ########################################################################
 services:
@@ -35,12 +8,17 @@ services:
   # NodeRed
   ########################################################################
   nodered:
-    <<: *common-keys-core # See EXTENSION FIELDS at the top
     container_name: nodered
     image: nodered/node-red:latest
-    restart: unless-stopped
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: always
     environment:
-      <<: *default-tz-puid-pgid
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
     volumes:
       - $DOCKERDIR/appdata/nodered/data:/data
     ports:
@@ -65,12 +43,14 @@ services:
   # MQTT Broker
   ########################################################################
   mosquitto-mqtt:
-    <<: *common-keys-apps # See EXTENSION FIELDS at the top
     container_name: mosquitto-mqtt
     image: eclipse-mosquitto:latest
     networks:
       home_internal:
         ipv4_address: 192.168.89.253 # You can specify a static IP
+    security_opt:
+      - no-new-privileges:true
+    restart: always
     volumes:
       - $DOCKERDIR/appdata/mosquitto:/mosquitto
       - $DOCKERDIR/appdata/mosquitto/data:/mosquitto/data
@@ -79,7 +59,9 @@ services:
       - 1883:1883
       - 9001:9001
     environment:
-      <<: *default-tz-puid-pgid
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
 
   ########################################################################
   # HomeAssistant
@@ -91,7 +73,9 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - $HAHOMEDIR:/config
     environment:
-      <<: *default-tz-puid-pgid
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
     security_opt:
       - no-new-privileges:true
     devices:
@@ -122,7 +106,6 @@ services:
   # File Browser - Explorer
   ########################################################################
   filebrowser:
-    <<: *common-keys-apps # See EXTENSION FIELDS at the top
     image: filebrowser/filebrowser:s6
     container_name: filebrowser
     ports:
@@ -132,7 +115,14 @@ services:
       - $EXTDRIVE:/srv
       - $DOCKERDIR/appdata/filebrowser/database:/database/
     environment:
-      <<: *default-tz-puid-pgid
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: always
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
