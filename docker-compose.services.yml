@@ -57,6 +57,9 @@ services:
       PUID: $PUID
       PGID: $PGID
       DOCKER_HOST: tcp://socket-proxy:2375
+    networks:
+      socket_proxy:
+      home_internal:
     security_opt:
       - no-new-privileges:true
     restart: always
