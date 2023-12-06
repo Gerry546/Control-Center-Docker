@@ -81,7 +81,7 @@ services:
         protocol: tcp
         mode: host
       - target: 22
-        published: 22
+        published: 2052
         protocol: tcp
         mode: host
     volumes:
