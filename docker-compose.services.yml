@@ -24,7 +24,7 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: always
-    hostname: gitlab.estalor.com
+    hostname: gitlab.$DOMAINNAME_CLOUD_SERVER
     volumes:
       - $GITLAB_HOME/data:/var/opt/gitlab
       - $GITLAB_HOME/logs:/var/log/gitlab
@@ -34,7 +34,7 @@ services:
       - github_omniauth_app_secret
     environment:
       GITLAB_OMNIBUS_CONFIG: |
-        external_url 'https://gitlab.estalor.com'
+        external_url 'http://gitlab.$DOMAINNAME_CLOUD_SERVER'
         nginx['listen_port'] = 80
         nginx['listen_https'] = false
         nginx['proxy_set_headers'] = {
@@ -56,6 +56,26 @@ services:
       - 'traefik.tcp.routers.gitlab-ssh.rule=HostSNI(`*`)'
       - 'traefik.tcp.routers.gitlab-ssh.service=gitlab-ssh-svc'
       - 'traefik.tcp.services.gitlab-ssh-svc.loadbalancer.server.port=22'
+
+  ########################################################################
+  # Gitlab Runner
+  ########################################################################
+  gitlab-runner:
+    image: gitlab/gitlab-runner:latest
+    container_name: gitlab-runner
+    volumes:
+      - ${DOCKERDIR}/appdata/gitlab-runner/config:/etc/gitlab-runner
+    networks:
+      home_internal:
+      socket_proxy:
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+    depends_on:
+      - socket-proxy
+    environment:
+      DOCKER_HOST: tcp://socket-proxy:2375
+      TZ: $TZ
 
   ########################################################################
   # VSCode
