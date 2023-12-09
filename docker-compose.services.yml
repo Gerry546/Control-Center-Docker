@@ -21,6 +21,7 @@ services:
     container_name: gitlab
     networks:
       home_internal:
+        ipv4_address: 192.168.89.252 # You can specify a static IP
     security_opt:
       - no-new-privileges:true
     restart: always
