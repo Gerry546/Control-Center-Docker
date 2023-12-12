@@ -42,6 +42,14 @@ services:
           "X-Forwarded-Proto" => "https",
           "X-Forwarded-Ssl" => "on"
         }
+        registry_external_url 'http://registry.$DOMAINNAME_CLOUD_SERVER'
+        registry['enable'] = true
+        registry_nginx['enable'] = true
+        registry_nginx['listen_https'] = false
+        registry_nginx['proxy_set_headers'] = {
+          "X-Forwarded-Proto" => "https",
+          "X-Forwarded-Ssl" => "on"
+        }
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
