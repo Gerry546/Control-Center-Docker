@@ -27,9 +27,9 @@ services:
     restart: always
     hostname: gitlab.$DOMAINNAME_CLOUD_SERVER
     volumes:
-      - $GITLAB_HOME/data:/var/opt/gitlab
-      - $GITLAB_HOME/logs:/var/log/gitlab
-      - $GITLAB_HOME/config:/etc/gitlab
+      - $DOCKERDIR/appdata/gitlab/data:/var/opt/gitlab
+      - $DOCKERDIR/appdata/gitlab/logs:/var/log/gitlab
+      - $DOCKERDIR/appdata/gitlab/config:/etc/gitlab
     secrets:
       - github_omniauth_app_id
       - github_omniauth_app_secret
