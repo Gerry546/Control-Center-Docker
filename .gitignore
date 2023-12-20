@@ -2,4 +2,5 @@ appdata
 logs
 .env
 shared/.htpasswd
+shared/certs/
 secrets
