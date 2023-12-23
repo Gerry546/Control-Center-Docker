@@ -104,17 +104,16 @@ services:
       - "traefik.http.routers.http-catchall.rule=HostRegexp(`{host:.+}`)"
       - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      # HTTP Routers
-      - "traefik.http.routers.traefik-rtr.entrypoints=https"
-      - "traefik.http.routers.traefik-rtr.rule=Host(`traefik.$DOMAINNAME_CLOUD_SERVER`)"
-      - "traefik.http.routers.traefik-rtr.tls=true" # Some people had 404s without this
-      # - "traefik.http.routers.traefik-rtr.tls.certresolver=dns-cloudflare" # Comment out this line after first run of traefik to force the use of wildcard certs
-      - "traefik.http.routers.traefik-rtr.tls.domains[0].main=$DOMAINNAME_CLOUD_SERVER"
-      - "traefik.http.routers.traefik-rtr.tls.domains[0].sans=*.$DOMAINNAME_CLOUD_SERVER"
+      # HTTP Access
+      - "traefik.http.routers.traefik-http-router.entrypoints=https"
+      - "traefik.http.routers.traefik-http-router.rule=Host(`traefik.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.traefik-http-router.tls=true" # Some people had 404s without this
+      # - "traefik.http.routers.traefik-http-router.tls.certresolver=dns-cloudflare" # Comment out this line after first run of traefik to force the use of wildcard certs
+      - "traefik.http.routers.traefik-http-router.tls.domains[0].main=$DOMAINNAME_CLOUD_SERVER"
+      - "traefik.http.routers.traefik-http-router.tls.domains[0].sans=*.$DOMAINNAME_CLOUD_SERVER"
       ## Services - API
-      - "traefik.http.routers.traefik-rtr.service=api@internal"
-      ## Middlewares
-      - "traefik.http.routers.traefik-rtr.middlewares=chain-oauth@file"
+      - "traefik.http.routers.traefik-http-router.service=api@internal"
+      - "traefik.http.routers.traefik-http-router.middlewares=chain-oauth@file"
 
   ########################################################################
   # Google OAuth - Single Sign On using OAuth 2.0
@@ -143,15 +142,13 @@ services:
         target: /config
     labels:
       - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.oauth-rtr.tls=true"
-      - "traefik.http.routers.oauth-rtr.entrypoints=https"
-      - "traefik.http.routers.oauth-rtr.rule=Host(`oauth.$DOMAINNAME_CLOUD_SERVER`)"
-      ## Middlewares
-      - "traefik.http.routers.oauth-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.oauth-rtr.service=oauth-svc"
-      - "traefik.http.services.oauth-svc.loadbalancer.server.port=4181"
+      ## HTTP Access
+      - "traefik.http.routers.oauth-http-router.tls=true"
+      - "traefik.http.routers.oauth-http-router.entrypoints=https"
+      - "traefik.http.routers.oauth-http-router.rule=Host(`oauth.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.oauth-http-router.middlewares=chain-oauth@file"
+      - "traefik.http.routers.oauth-http-router.service=oauth-http-service"
+      - "traefik.http.services.oauth-http-service.loadbalancer.server.port=4181"
 
   ########################################################################
   # Crowdsec - Open-source & collaborative security IPS
@@ -160,7 +157,7 @@ services:
     image: crowdsecurity/crowdsec:latest
     container_name: crowdsec
     ports:
-      - "8080:8080"
+      - "$CROWDSEC_PORT:8080"
       # - "$CROWDSEC_PROMETHEUS_EXPORT:6060" # For metrics export to Prometheus database.
       # - "$ZEROTIER_IP_WEBSERVER:$CROWDSEC_PROMETHEUS_EXPORT:6060" # If you don't use ZeroTier remove use just $CROWDSEC_PROMETHEUS_EXPORT:6060
     networks:
@@ -171,7 +168,7 @@ services:
     environment:
       COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/iptables crowdsecurity/linux crowdsecurity/sshd"
       GID: "${GID-1000}"
-      CUSTOM_HOSTNAME: Estalor
+      CUSTOM_HOSTNAME: $DOMAINNAME
     volumes:
       - $DOCKERDIR/logs/cloudserver:/logs/web:ro
       - /var/log:/var/log:ro

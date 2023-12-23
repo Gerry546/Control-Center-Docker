@@ -14,74 +14,130 @@ secrets:
 ########################################################################
 services:
   ########################################################################
-  # Gitlab
+  # Gitea
   ########################################################################
-  gitlab:
-    image: gitlab/gitlab-ce:latest
-    container_name: gitlab
-    networks:
-      home_internal:
-        ipv4_address: 192.168.89.252 # You can specify a static IP
-    security_opt:
-      - no-new-privileges:true
-    restart: always
-    hostname: gitlab.$DOMAINNAME_CLOUD_SERVER
-    volumes:
-      - $DOCKERDIR/appdata/gitlab/data:/var/opt/gitlab
-      - $DOCKERDIR/appdata/gitlab/logs:/var/log/gitlab
-      - $DOCKERDIR/appdata/gitlab/config:/etc/gitlab
-      - $DOCKERDIR/shared/certs:/etc/gitlab/ssl
-    secrets:
-      - github_omniauth_app_id
-      - github_omniauth_app_secret
+  gitea:
+    image: gitea/gitea:latest
+    container_name: gitea
     environment:
-      GITLAB_OMNIBUS_CONFIG: |
-        registry_external_url 'https://registry.estalor.com'
-        registry_nginx['listen_port'] = 5050
-        letsencrypt['enable'] = false
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      GITEA__DATABASE__DB_TYPE: mysql
+      GITEA__DATABASE__HOST: mariadb-gitea:3306
+      GITEA__DATABASE__NAME: gitea
+      GITEA__DATABASE__USER: gitea
+      GITEA__DATABASE__PASSWD: gitea
+      GITEA__ADMIN__USER: $GITEA_ADMIN_USER
+      GITEA__ADMIN__EMAIL: $GITEA_ADMIN_EMAIL
+      GITEA__ADMIN__PASSWORD: $GITEA_ADMIN_PASS
+    depends_on:
+      - mariadb-gitea
+    restart: always
+    networks:
+      gitea:
+      home_internal:
+          ipv4_address: $GITEA_IP # You can specify a static IP
+    volumes:
+      - ${DOCKERDIR}/appdata/gitea:/data
+    ports:
+      - "3000:3000"
+      - "222:22" 
     labels:
       - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.gitlab-rtr.entrypoints=https"
-      - "traefik.http.routers.gitlab-rtr.rule=Host(`gitlab.$DOMAINNAME_CLOUD_SERVER`)"
-      ## Middlewares
-      - "traefik.http.routers.gitlab-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.gitlab-rtr.service=gitlab-svc"
-      - "traefik.http.services.gitlab-svc.loadbalancer.server.port=80"
-      # To ensure ssh works
-      - 'traefik.tcp.routers.gitlab-ssh.entrypoints=ssh'
-      - 'traefik.tcp.routers.gitlab-ssh.rule=HostSNI(`*`)'
-      - 'traefik.tcp.routers.gitlab-ssh.service=gitlab-ssh-svc'
-      - 'traefik.tcp.services.gitlab-ssh-svc.loadbalancer.server.port=22'
-      ## HTTP Routers
-      - "traefik.http.routers.gitlab-registry-rtr.entrypoints=https"
-      - "traefik.http.routers.gitlab-registry-rtr.rule=Host(`registry.$DOMAINNAME_CLOUD_SERVER`)"
-      ## Middlewares
-      - "traefik.http.routers.gitlab-registry-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.gitlab-registry-rtr.service=gitlab-registry-svc"
-      - "traefik.http.services.gitlab-registry-svc.loadbalancer.server.port=5050"
+      ## HTTP Access
+      - "traefik.http.routers.gitea-http-router.entrypoints=https"
+      - "traefik.http.routers.gitea-http-router.rule=Host(`gitea.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.gitea-http-router.tls=true"
+      - "traefik.http.routers.gitea-http-router.priority=99"
+      - "traefik.http.routers.gitea-http-router.middlewares=chain-oauth@file"
+      - "traefik.http.routers.gitea-http-router.service=gitea-http-service"
+      - "traefik.http.services.gitea-http-service.loadbalancer.server.port=3000"
+      ## Docker access
+      - "traefik.http.routers.gitea-docker-router.entrypoints=https"
+      - "traefik.http.routers.gitea-docker-router.priority=100"
+      - "traefik.http.routers.gitea-docker-router.rule=Host(`gitea.$DOMAINNAME_CLOUD_SERVER`) && PathPrefix(`/v2/`)"
+      - "traefik.http.routers.gitea-docker-router.tls=true"
+      - "traefik.http.routers.gitea-docker-router.middlewares=chain-no-auth@file"
+      - "traefik.http.routers.gitea-docker-router.service=gitea-docker-service"
+      - "traefik.http.services.gitea-docker-service.loadbalancer.server.port=3000"
+      # SSH Access
+      - 'traefik.tcp.routers.gitlab-ssh-router.entrypoints=ssh'
+      - 'traefik.tcp.routers.gitlab-ssh-router.rule=HostSNI(`*`)'
+      - 'traefik.tcp.routers.gitlab-ssh-router.service=gitlab-ssh-service'
+      - 'traefik.tcp.services.gitlab-ssh-service.loadbalancer.server.port=22'
 
-  ########################################################################
-  # Gitlab Runner
-  ########################################################################
-  gitlab-runner:
-    image: gitlab/gitlab-runner:latest
-    container_name: gitlab-runner
-    volumes:
-      - ${DOCKERDIR}/appdata/gitlab-runner/config:/etc/gitlab-runner
-    networks:
-      home_internal:
-      socket_proxy:
-    security_opt:
-      - no-new-privileges:true
-    restart: always
-    depends_on:
-      - socket-proxy
-    environment:
-      DOCKER_HOST: tcp://socket-proxy:2375
-      TZ: $TZ
+  # ########################################################################
+  # # Gitlab
+  # ########################################################################
+  # gitlab:
+  #   image: gitlab/gitlab-ce:latest
+  #   container_name: gitlab
+  #   networks:
+  #     home_internal:
+  #       ipv4_address: 192.168.89.252 # You can specify a static IP
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   restart: always
+  #   hostname: gitlab.$DOMAINNAME_CLOUD_SERVER
+  #   volumes:
+  #     - $DOCKERDIR/appdata/gitlab/data:/var/opt/gitlab
+  #     - $DOCKERDIR/appdata/gitlab/logs:/var/log/gitlab
+  #     - $DOCKERDIR/appdata/gitlab/config:/etc/gitlab
+  #     - $DOCKERDIR/shared/certs:/etc/gitlab/ssl
+  #   secrets:
+  #     - github_omniauth_app_id
+  #     - github_omniauth_app_secret
+  #   environment:
+  #     GITLAB_OMNIBUS_CONFIG: |
+  #       registry_external_url 'https://registry.estalor.com'
+  #       registry_nginx['listen_port'] = 5050
+  #       letsencrypt['enable'] = false
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.gitlab-rtr.entrypoints=https"
+  #     - "traefik.http.routers.gitlab-rtr.rule=Host(`gitlab.$DOMAINNAME_CLOUD_SERVER`)"
+  #     ## Middlewares
+  #     - "traefik.http.routers.gitlab-rtr.middlewares=chain-oauth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.gitlab-rtr.service=gitlab-svc"
+  #     - "traefik.http.services.gitlab-svc.loadbalancer.server.port=80"
+  #     # To ensure ssh works
+  #     - 'traefik.tcp.routers.gitlab-ssh.entrypoints=ssh'
+  #     - 'traefik.tcp.routers.gitlab-ssh.rule=HostSNI(`*`)'
+  #     - 'traefik.tcp.routers.gitlab-ssh.service=gitlab-ssh-svc'
+  #     - 'traefik.tcp.services.gitlab-ssh-svc.loadbalancer.server.port=22'
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.gitlab-registry-rtr.tls=true"
+  #     - "traefik.http.routers.gitlab-registry-rtr.entrypoints=https"
+  #     - "traefik.http.routers.gitlab-registry-rtr.rule=Host(`registry.$DOMAINNAME_CLOUD_SERVER`)"
+  #     ## Middlewares
+  #     - "traefik.http.routers.gitlab-registry-rtr.middlewares=chain-no-auth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.gitlab-registry-rtr.service=gitlab-registry-svc"
+  #     - "traefik.http.services.gitlab-registry-svc.loadbalancer.server.port=5050"
+  #     - "traefik.http.services.gitlab-registry-svc.loadbalancer.server.scheme=https"
+
+  # ########################################################################
+  # # Gitlab Runner
+  # ########################################################################
+  # gitlab-runner:
+  #   image: gitlab/gitlab-runner:latest
+  #   container_name: gitlab-runner
+  #   volumes:
+  #     - ${DOCKERDIR}/appdata/gitlab-runner/config:/etc/gitlab-runner
+  #   networks:
+  #     home_internal:
+  #     socket_proxy:
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   restart: always
+  #   depends_on:
+  #     - socket-proxy
+  #   environment:
+  #     DOCKER_HOST: tcp://socket-proxy:2375
+  #     TZ: $TZ
 
   ########################################################################
   # VSCode
@@ -109,14 +165,13 @@ services:
     restart: always
     labels:
       - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.vscode-rtr.entrypoints=https"
-      - "traefik.http.routers.vscode-rtr.rule=Host(`code.$DOMAINNAME_CLOUD_SERVER`)"
-      ## Middlewares
-      - "traefik.http.routers.vscode-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.vscode-rtr.service=vscode-svc"
-      - "traefik.http.services.vscode-svc.loadbalancer.server.port=8443"
+      ## HTTP Access
+      - "traefik.http.routers.vscode-http-router.entrypoints=https"
+      - "traefik.http.routers.vscode-http-router.rule=Host(`code.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.vscode-http-router.tls=true"
+      - "traefik.http.routers.vscode-http-router.middlewares=chain-oauth@file"
+      - "traefik.http.routers.vscode-http-router.service=vscode-http-service"
+      - "traefik.http.services.vscode-http-service.loadbalancer.server.port=8443"
 
   ########################################################################
   # Guacd - Guacamole daemon
@@ -151,15 +206,13 @@ services:
     restart: always
     labels:
       - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.guacamole-rtr.entrypoints=https"
-      - "traefik.http.routers.guacamole-rtr.rule=Host(`guacamole.$DOMAINNAME_CLOUD_SERVER`)"
-      - "traefik.http.routers.guacamole-rtr.tls=true"
-      ## Middlewares
-      - "traefik.http.routers.guacamole-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.guacamole-rtr.service=guacamole-svc"
-      - "traefik.http.services.guacamole-svc.loadbalancer.server.port=8080"
+      ## HTTP Access
+      - "traefik.http.routers.guacamole-http-router.entrypoints=https"
+      - "traefik.http.routers.guacamole-http-router.rule=Host(`guacamole.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.guacamole-http-router.tls=true"
+      - "traefik.http.routers.guacamole-http-router.middlewares=chain-oauth@file"
+      - "traefik.http.routers.guacamole-http-router.service=guacamole-http-service"
+      - "traefik.http.services.guacamole-http-service.loadbalancer.server.port=8080"
 
   ########################################################################
   # Portainer - WebUI for Containers
@@ -173,7 +226,7 @@ services:
     environment:
       - TZ=$TZ
     ports:
-      - "9000:9000"
+      - "$PORTAINER_PORT:9000"
     networks:
       home_internal:
       socket_proxy:
@@ -184,15 +237,13 @@ services:
       - socket-proxy
     labels:
       - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.portainer-rtr.entrypoints=https"
-      - "traefik.http.routers.portainer-rtr.rule=Host(`portainer.$DOMAINNAME_CLOUD_SERVER`)"
-      - "traefik.http.routers.portainer-rtr.tls=true"
-      ## Middlewares
-      - "traefik.http.routers.portainer-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.portainer-rtr.service=portainer-svc"
-      - "traefik.http.services.portainer-svc.loadbalancer.server.port=9000"
+      ## HTTP Access
+      - "traefik.http.routers.portainer-http-router.entrypoints=https"
+      - "traefik.http.routers.portainer-http-router.rule=Host(`portainer.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.portainer-http-router.tls=true"
+      - "traefik.http.routers.portainer-http-router.middlewares=chain-oauth@file"
+      - "traefik.http.routers.portainer-http-router.service=portainer-http-service"
+      - "traefik.http.services.portainer-http-service.loadbalancer.server.port=9000"
 
   ########################################################################
   # Heimdall - Container dashboard
@@ -216,14 +267,12 @@ services:
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
-      - "traefik.http.routers.heimdall-rtr.entrypoints=https"
-      - "traefik.http.routers.heimdall-rtr.rule=Host(`$DOMAINNAME_CLOUD_SERVER`,`www.$DOMAINNAME_CLOUD_SERVER`)"
-      - "traefik.http.routers.heimdall-rtr.tls=true"
-      ## Middlewares
-      - "traefik.http.routers.heimdall-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.heimdall-rtr.service=heimdall-svc"
-      - "traefik.http.services.heimdall-svc.loadbalancer.server.port=80"
+      - "traefik.http.routers.heimdall-http-router.entrypoints=https"
+      - "traefik.http.routers.heimdall-http-router.rule=Host(`$DOMAINNAME_CLOUD_SERVER`,`www.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.heimdall-http-router.tls=true"
+      - "traefik.http.routers.heimdall-http-router.middlewares=chain-oauth@file"
+      - "traefik.http.routers.heimdall-http-router.service=heimdall-http-service"
+      - "traefik.http.services.heimdall-http-service.loadbalancer.server.port=80"
 
   ########################################################################
   # Dozzle - Runtime insight in running containers
@@ -244,11 +293,9 @@ services:
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
-      - "traefik.http.routers.dozzle-rtr.entrypoints=https"
-      - "traefik.http.routers.dozzle-rtr.rule=Host(`dozzle.$DOMAINNAME_CLOUD_SERVER`)"
-      - "traefik.http.routers.dozzle-rtr.tls=true"
-      ## Middlewares
-      - "traefik.http.routers.dozzle-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.dozzle-rtr.service=dozzle-svc"
-      - "traefik.http.services.dozzle-svc.loadbalancer.server.port=8080"
+      - "traefik.http.routers.dozzle-http-router.entrypoints=https"
+      - "traefik.http.routers.dozzle-http-router.rule=Host(`dozzle.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.dozzle-http-router.tls=true"
+      - "traefik.http.routers.dozzle-http-router.middlewares=chain-oauth@file"
+      - "traefik.http.routers.dozzle-http-router.service=dozzle-http-service"
+      - "traefik.http.services.dozzle-http-service.loadbalancer.server.port=8080"

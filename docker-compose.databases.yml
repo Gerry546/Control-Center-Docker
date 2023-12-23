@@ -14,13 +14,11 @@ services:
   ########################################################################
   # MariaDB - MySQL Database for Guacamole
   ########################################################################
-  mariadb-guacemole:
-    container_name: mariadb-guacemole
+  mariadb-gitea:
+    container_name: mariadb-gitea
     image: lscr.io/linuxserver/mariadb:latest
     volumes:
-      - $DOCKERDIR/appdata/mariadb-guacemole/data:/config
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
+      - $DOCKERDIR/appdata/mariadb-gitea/data:/config
     networks:
       home_internal:
     security_opt:
@@ -30,7 +28,29 @@ services:
       TZ: $TZ
       PUID: $PUID
       PGID: $PGID
-      MYSQL_ROOT_PASSWORD: $GUACEMOLE_PASSWORD
+      MYSQL_ROOT_PASSWORD: $GITEA_ROOT_PASSWORD
+      MYSQL_DATABASE: gitea
+      MYSQL_USER: $GITEA_MYSQL_USER
+      MYSQL_PASSWORD: $GITEA_PASSWORD
+
+  ########################################################################
+  # MariaDB - MySQL Database for Guacamole
+  ########################################################################
+  mariadb-guacemole:
+    container_name: mariadb-guacemole
+    image: lscr.io/linuxserver/mariadb:latest
+    volumes:
+      - $DOCKERDIR/appdata/mariadb-guacemole/data:/config
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      MYSQL_ROOT_PASSWORD: $GITEA_PASSWORD
 
   ########################################################################
   # MariaDB - MyQSL Database for Crowdsec
