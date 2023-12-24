@@ -67,77 +67,30 @@ services:
       - 'traefik.tcp.routers.gitlab-ssh-router.service=gitlab-ssh-service'
       - 'traefik.tcp.services.gitlab-ssh-service.loadbalancer.server.port=22'
 
-  # ########################################################################
-  # # Gitlab
-  # ########################################################################
-  # gitlab:
-  #   image: gitlab/gitlab-ce:latest
-  #   container_name: gitlab
-  #   networks:
-  #     home_internal:
-  #       ipv4_address: 192.168.89.252 # You can specify a static IP
-  #   security_opt:
-  #     - no-new-privileges:true
-  #   restart: always
-  #   hostname: gitlab.$DOMAINNAME_CLOUD_SERVER
-  #   volumes:
-  #     - $DOCKERDIR/appdata/gitlab/data:/var/opt/gitlab
-  #     - $DOCKERDIR/appdata/gitlab/logs:/var/log/gitlab
-  #     - $DOCKERDIR/appdata/gitlab/config:/etc/gitlab
-  #     - $DOCKERDIR/shared/certs:/etc/gitlab/ssl
-  #   secrets:
-  #     - github_omniauth_app_id
-  #     - github_omniauth_app_secret
-  #   environment:
-  #     GITLAB_OMNIBUS_CONFIG: |
-  #       registry_external_url 'https://registry.estalor.com'
-  #       registry_nginx['listen_port'] = 5050
-  #       letsencrypt['enable'] = false
-  #   labels:
-  #     - "traefik.enable=true"
-  #     ## HTTP Routers
-  #     - "traefik.http.routers.gitlab-rtr.entrypoints=https"
-  #     - "traefik.http.routers.gitlab-rtr.rule=Host(`gitlab.$DOMAINNAME_CLOUD_SERVER`)"
-  #     ## Middlewares
-  #     - "traefik.http.routers.gitlab-rtr.middlewares=chain-oauth@file"
-  #     ## HTTP Services
-  #     - "traefik.http.routers.gitlab-rtr.service=gitlab-svc"
-  #     - "traefik.http.services.gitlab-svc.loadbalancer.server.port=80"
-  #     # To ensure ssh works
-  #     - 'traefik.tcp.routers.gitlab-ssh.entrypoints=ssh'
-  #     - 'traefik.tcp.routers.gitlab-ssh.rule=HostSNI(`*`)'
-  #     - 'traefik.tcp.routers.gitlab-ssh.service=gitlab-ssh-svc'
-  #     - 'traefik.tcp.services.gitlab-ssh-svc.loadbalancer.server.port=22'
-  #     ## HTTP Routers
-  #     - "traefik.http.routers.gitlab-registry-rtr.tls=true"
-  #     - "traefik.http.routers.gitlab-registry-rtr.entrypoints=https"
-  #     - "traefik.http.routers.gitlab-registry-rtr.rule=Host(`registry.$DOMAINNAME_CLOUD_SERVER`)"
-  #     ## Middlewares
-  #     - "traefik.http.routers.gitlab-registry-rtr.middlewares=chain-no-auth@file"
-  #     ## HTTP Services
-  #     - "traefik.http.routers.gitlab-registry-rtr.service=gitlab-registry-svc"
-  #     - "traefik.http.services.gitlab-registry-svc.loadbalancer.server.port=5050"
-  #     - "traefik.http.services.gitlab-registry-svc.loadbalancer.server.scheme=https"
-
-  # ########################################################################
-  # # Gitlab Runner
-  # ########################################################################
-  # gitlab-runner:
-  #   image: gitlab/gitlab-runner:latest
-  #   container_name: gitlab-runner
-  #   volumes:
-  #     - ${DOCKERDIR}/appdata/gitlab-runner/config:/etc/gitlab-runner
-  #   networks:
-  #     home_internal:
-  #     socket_proxy:
-  #   security_opt:
-  #     - no-new-privileges:true
-  #   restart: always
-  #   depends_on:
-  #     - socket-proxy
-  #   environment:
-  #     DOCKER_HOST: tcp://socket-proxy:2375
-  #     TZ: $TZ
+  ########################################################################
+  # Gitea Runner
+  ########################################################################
+  gitea-runner:
+    image: gitea/act_runner:latest
+    container_name: gitea-runner
+    networks:
+      home_internal:
+      socket_proxy:
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      - socket-proxy
+    environment:
+      DOCKER_HOST: tcp://socket-proxy:2375
+      CONFIG_FILE: /config.yaml
+      GITEA_INSTANCE_URL: "http://$GITEA_IP:3000"
+      GITEA_RUNNER_REGISTRATION_TOKEN: "${REGISTRATION_TOKEN}"
+      GITEA_RUNNER_NAME: "${RUNNER_NAME}"
+      GITEA_RUNNER_LABELS: "${RUNNER_LABELS}"
+    volumes:
+      - $DOCKERDIR/appdata/gitea-runner/config.yaml:/config.yaml
+      - $DOCKERDIR/appdata/gitea-runner/data:/data
+      - $YOCTOCACHEDIR:/cache
 
   ########################################################################
   # VSCode
