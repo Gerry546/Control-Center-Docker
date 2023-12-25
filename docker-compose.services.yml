@@ -91,7 +91,7 @@ services:
       - $DOCKERDIR/appdata/gitea-runner/config.yaml:/config.yaml
       - $DOCKERDIR/appdata/gitea-runner/data:/data
       - $YOCTOCACHEDIR:/cache
-      - $DOCKERDIR/appdata/gitea-runner/act-toolcache:/var/lib/docker/volumes/act-toolcache
+      - $DOCKERDIR/appdata/gitea-runner/act-toolcache/_data:/var/lib/docker/volumes/act-toolcache/_data
       - /var/run/docker.sock:/var/run/docker.sock
 
   ########################################################################
