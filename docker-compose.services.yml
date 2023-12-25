@@ -56,7 +56,7 @@ services:
       ## Docker access
       - "traefik.http.routers.gitea-docker-router.entrypoints=https"
       - "traefik.http.routers.gitea-docker-router.priority=100"
-      - "traefik.http.routers.gitea-docker-router.rule=Host(`gitea.$DOMAINNAME_CLOUD_SERVER`) && PathPrefix(`/v2/`)"
+      - "traefik.http.routers.gitea-docker-router.rule=Host(`gitea.$DOMAINNAME_CLOUD_SERVER`) && (ClientIP(`$HOST_IP`, `172.0.0.0/8`) || PathPrefix(`/v2/`))"
       - "traefik.http.routers.gitea-docker-router.tls=true"
       - "traefik.http.routers.gitea-docker-router.middlewares=chain-no-auth@file"
       - "traefik.http.routers.gitea-docker-router.service=gitea-docker-service"
@@ -75,22 +75,24 @@ services:
     container_name: gitea-runner
     networks:
       home_internal:
-      socket_proxy:
+      # socket_proxy:
     security_opt:
       - no-new-privileges:true
-    depends_on:
-      - socket-proxy
+    # depends_on:
+    #   - socket-proxy
     environment:
-      DOCKER_HOST: tcp://socket-proxy:2375
+      # DOCKER_HOST: tcp://socket-proxy:2375
       CONFIG_FILE: /config.yaml
-      GITEA_INSTANCE_URL: "http://$GITEA_IP:3000"
+      GITEA_INSTANCE_URL: "https://gitea.$DOMAINNAME_CLOUD_SERVER"
       GITEA_RUNNER_REGISTRATION_TOKEN: "${REGISTRATION_TOKEN}"
       GITEA_RUNNER_NAME: "${RUNNER_NAME}"
-      GITEA_RUNNER_LABELS: "${RUNNER_LABELS}"
+      # GITEA_RUNNER_LABELS: "${RUNNER_LABELS}"
     volumes:
       - $DOCKERDIR/appdata/gitea-runner/config.yaml:/config.yaml
       - $DOCKERDIR/appdata/gitea-runner/data:/data
       - $YOCTOCACHEDIR:/cache
+      - $DOCKERDIR/appdata/gitea-runner/act-toolcache:/var/lib/docker/volumes/act-toolcache
+      - /var/run/docker.sock:/var/run/docker.sock
 
   ########################################################################
   # VSCode
