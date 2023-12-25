@@ -68,6 +68,8 @@ services:
       socket_proxy:
         # extra_hosts:
         #   - host.docker.internal:172.17.0.1
+    depends_on:
+      - socket-proxy
     security_opt:
       - no-new-privileges:true
     restart: always
