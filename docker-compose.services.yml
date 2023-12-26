@@ -71,27 +71,22 @@ services:
   # Gitea Runner
   ########################################################################
   gitea-runner:
-    image: gitea/act_runner:latest
+    image: gitea/act_runner:nightly
     container_name: gitea-runner
     networks:
       home_internal:
-      # socket_proxy:
     security_opt:
       - no-new-privileges:true
-    # depends_on:
-    #   - socket-proxy
     environment:
       # DOCKER_HOST: tcp://socket-proxy:2375
       CONFIG_FILE: /config.yaml
       GITEA_INSTANCE_URL: "https://gitea.$DOMAINNAME_CLOUD_SERVER"
       GITEA_RUNNER_REGISTRATION_TOKEN: "${REGISTRATION_TOKEN}"
       GITEA_RUNNER_NAME: "${RUNNER_NAME}"
-      # GITEA_RUNNER_LABELS: "${RUNNER_LABELS}"
     volumes:
       - $DOCKERDIR/appdata/gitea-runner/config.yaml:/config.yaml
       - $DOCKERDIR/appdata/gitea-runner/data:/data
       - $YOCTOCACHEDIR:/cache
-      - $DOCKERDIR/appdata/gitea-runner/act-toolcache/_data:/var/lib/docker/volumes/act-toolcache/_data
       - /var/run/docker.sock:/var/run/docker.sock
 
   ########################################################################
