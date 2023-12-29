@@ -66,6 +66,8 @@ services:
       - 'traefik.tcp.routers.gitlab-ssh-router.rule=HostSNI(`*`)'
       - 'traefik.tcp.routers.gitlab-ssh-router.service=gitlab-ssh-service'
       - 'traefik.tcp.services.gitlab-ssh-service.loadbalancer.server.port=22'
+      ## Watchtower manual update
+      - "com.centurylinklabs.watchtower.enable=true"
 
   ########################################################################
   # Gitea Runner
@@ -88,6 +90,9 @@ services:
       - $DOCKERDIR/appdata/gitea-runner/data:/data
       - $YOCTOCACHEDIR:/cache
       - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      ## Watchtower manual update
+      - "com.centurylinklabs.watchtower.enable=true"
 
   ########################################################################
   # VSCode
@@ -122,6 +127,8 @@ services:
       - "traefik.http.routers.vscode-http-router.middlewares=chain-oauth@file"
       - "traefik.http.routers.vscode-http-router.service=vscode-http-service"
       - "traefik.http.services.vscode-http-service.loadbalancer.server.port=8443"
+      ## Watchtower manual update
+      - "com.centurylinklabs.watchtower.enable=true"
 
   ########################################################################
   # Guacd - Guacamole daemon
@@ -134,6 +141,9 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: always
+    labels:
+      ## Watchtower manual update
+      - "com.centurylinklabs.watchtower.enable=true"
 
   ########################################################################
   # Guacamole - Remote desktop, SSH, on Telnet on any HTML5 Browser
@@ -163,6 +173,8 @@ services:
       - "traefik.http.routers.guacamole-http-router.middlewares=chain-oauth@file"
       - "traefik.http.routers.guacamole-http-router.service=guacamole-http-service"
       - "traefik.http.services.guacamole-http-service.loadbalancer.server.port=8080"
+      ## Watchtower manual update
+      - "com.centurylinklabs.watchtower.enable=true"
 
   ########################################################################
   # Portainer - WebUI for Containers
@@ -194,6 +206,8 @@ services:
       - "traefik.http.routers.portainer-http-router.middlewares=chain-oauth@file"
       - "traefik.http.routers.portainer-http-router.service=portainer-http-service"
       - "traefik.http.services.portainer-http-service.loadbalancer.server.port=9000"
+      ## Watchtower manual update
+      - "com.centurylinklabs.watchtower.enable=true"
 
   ########################################################################
   # Heimdall - Container dashboard
@@ -223,6 +237,8 @@ services:
       - "traefik.http.routers.heimdall-http-router.middlewares=chain-oauth@file"
       - "traefik.http.routers.heimdall-http-router.service=heimdall-http-service"
       - "traefik.http.services.heimdall-http-service.loadbalancer.server.port=80"
+      ## Watchtower manual update
+      - "com.centurylinklabs.watchtower.enable=true"
 
   ########################################################################
   # Dozzle - Runtime insight in running containers
@@ -249,3 +265,5 @@ services:
       - "traefik.http.routers.dozzle-http-router.middlewares=chain-oauth@file"
       - "traefik.http.routers.dozzle-http-router.service=dozzle-http-service"
       - "traefik.http.services.dozzle-http-service.loadbalancer.server.port=8080"
+      ## Watchtower manual update
+      - "com.centurylinklabs.watchtower.enable=true"
