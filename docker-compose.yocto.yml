@@ -1,0 +1,18 @@
+version: "3.9"
+
+########################################################################
+########################### SERVICES ###################################
+########################################################################
+services:
+  yocto-local:
+    container_name: yocto-local
+    image: gitea.estalor.com/tom/yocto-builder:latest
+    tty: true
+    security_opt:
+      - no-new-privileges=true
+    restart: always
+    volumes:
+      - /cache:/cache
+      - $YOCTO_PROJECT_PATH:/project
+    environment:
+      - TEMPLATECONF=/project/layers/meta-estalor/conf/templates/estalor
