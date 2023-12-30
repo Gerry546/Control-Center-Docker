@@ -13,6 +13,6 @@ services:
     restart: always
     volumes:
       - /cache:/cache
-      - $YOCTO_PROJECT_PATH:/project
+      - $YOCTO_PROJECT_PATH:$YOCTO_PROJECT_PATH
     environment:
-      - TEMPLATECONF=/project/layers/meta-estalor/conf/templates/estalor
+      - TEMPLATECONF=$YOCTO_PROJECT_PATH/layers/meta-estalor/conf/templates/estalor
