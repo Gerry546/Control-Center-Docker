@@ -85,6 +85,8 @@ services:
       GITEA_INSTANCE_URL: "https://gitea.$DOMAINNAME_CLOUD_SERVER"
       GITEA_RUNNER_REGISTRATION_TOKEN: "${REGISTRATION_TOKEN}"
       GITEA_RUNNER_NAME: "${RUNNER_NAME}"
+    depends_on:
+      - gitea
     volumes:
       - $DOCKERDIR/appdata/gitea-runner/config.yaml:/config.yaml
       - $DOCKERDIR/appdata/gitea-runner/data:/data
