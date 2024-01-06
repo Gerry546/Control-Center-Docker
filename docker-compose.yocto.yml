@@ -8,6 +8,8 @@ services:
     container_name: yocto-local
     image: gitea.estalor.com/tom/yocto-builder:latest
     tty: true
+    ports:
+      - "$YOCTO_TOASTER_PORT:8000"
     security_opt:
       - no-new-privileges=true
     restart: always
