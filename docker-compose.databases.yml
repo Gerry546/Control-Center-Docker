@@ -12,7 +12,7 @@ secrets:
 ########################################################################
 services:
   ########################################################################
-  # MariaDB - MySQL Database for Guacamole
+  # MariaDB - MySQL Database for Gitea
   ########################################################################
   mariadb-gitea:
     container_name: mariadb-gitea
@@ -50,7 +50,7 @@ services:
       TZ: $TZ
       PUID: $PUID
       PGID: $PGID
-      MYSQL_ROOT_PASSWORD: $GITEA_PASSWORD
+      MYSQL_ROOT_PASSWORD: $GUACEMOLE_PASSWORD
 
   ########################################################################
   # MariaDB - MyQSL Database for Crowdsec
