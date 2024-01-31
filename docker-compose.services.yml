@@ -173,6 +173,7 @@ services:
       - "traefik.http.routers.guacamole-http-router.rule=Host(`guacamole.$DOMAINNAME_CLOUD_SERVER`)"
       - "traefik.http.routers.guacamole-http-router.tls=true"
       - "traefik.http.routers.guacamole-http-router.middlewares=chain-oauth@file"
+      - "traefik.http.middlewares.add-guacamole.addPrefix.prefix=/guacamole"
       - "traefik.http.routers.guacamole-http-router.service=guacamole-http-service"
       - "traefik.http.services.guacamole-http-service.loadbalancer.server.port=8080"
       ## Watchtower manual update
