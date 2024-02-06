@@ -10,6 +10,9 @@ services:
     tty: true
     ports:
       - "$YOCTO_TOASTER_PORT:8000"
+      - "$YOCTO_VNC_PORT:5900"
+      - "$YOCTO_HA_PORT:8888"
+      - "$YOCTO_SSH_PORT:2222"
     security_opt:
       - no-new-privileges=true
     restart: always
