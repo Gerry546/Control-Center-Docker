@@ -28,3 +28,12 @@ networks:
         - subnet: "192.168.1.0/24"
           ip_range: "$HOMEASSISTANT_EXTERNAL_IP/32"
           gateway: "192.168.1.1"
+
+include:
+  - docker-compose.container-management.yml
+  - docker-compose.databases.yml
+  - docker-compose.home-automation.yml
+  - docker-compose.productivity.yml
+  - docker-compose.security.yml
+  - docker-compose.services.yml
+  - docker-compose.yocto.yml
