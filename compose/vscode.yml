@@ -1,0 +1,34 @@
+services:
+  ########################################################################
+  # VSCode
+  ########################################################################
+  vscode:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: vscode
+    ports:
+      - "$VSCODE_PORT:8443"
+    volumes:
+      - $DOCKERDIR:/data/docker
+      - $HAHOMEDIR:/data/homeassistant
+      - $HOMEDIR:/data/home
+      - $DOCKERDIR/appdata/vscode:/config
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      DOCKER_HOST: tcp://socket-proxy:2375
+    networks:
+      socket_proxy:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Access
+      - "traefik.http.routers.vscode-http-router.entrypoints=https"
+      - "traefik.http.routers.vscode-http-router.rule=Host(`code.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.vscode-http-router.tls=true"
+      - "traefik.http.routers.vscode-http-router.middlewares=chain-oauth@file"
+      - "traefik.http.routers.vscode-http-router.service=vscode-http-service"
+      - "traefik.http.services.vscode-http-service.loadbalancer.server.port=8443"

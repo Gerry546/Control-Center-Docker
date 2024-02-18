@@ -1,0 +1,28 @@
+services:
+  ########################################################################
+  # Homepage - Container dashboard
+  ########################################################################
+  homepage:
+    container_name: homepage
+    image: ghcr.io/gethomepage/homepage:latest
+    networks:
+      home_internal:
+      socket_proxy:
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    volumes:
+      - $DOCKERDIR/appdata/homepage:/app/config
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.homepage-http-router.entrypoints=https"
+      - "traefik.http.routers.homepage-http-router.rule=Host(`$DOMAINNAME_CLOUD_SERVER`,`www.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.homepage-http-router.tls=true"
+      - "traefik.http.routers.homepage-http-router.middlewares=chain-oauth@file"
+      - "traefik.http.routers.homepage-http-router.service=homepage-http-service"
+      - "traefik.http.services.homepage-http-service.loadbalancer.server.port=3000"

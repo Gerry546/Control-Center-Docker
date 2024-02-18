@@ -1,0 +1,35 @@
+services:
+  ########################################################################
+  # Google OAuth - Single Sign On using OAuth 2.0
+  ########################################################################
+  oauth:
+    container_name: oauth
+    image: thomseddon/traefik-forward-auth:latest
+    environment:
+      - CONFIG=/config
+      - COOKIE_DOMAIN=$DOMAINNAME_CLOUD_SERVER
+      - INSECURE_COOKIE=false
+      - AUTH_HOST=oauth.$DOMAINNAME_CLOUD_SERVER
+      - URL_PATH=/_oauth
+      - LOG_LEVEL=warn
+      - LOG_FORMAT=text
+      - LIFETIME=86400 # 1 day
+      - DEFAULT_ACTION=auth
+      - DEFAULT_PROVIDER=google
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    secrets:
+      - source: traefik_forward_auth
+        target: /config
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Access
+      - "traefik.http.routers.oauth-http-router.tls=true"
+      - "traefik.http.routers.oauth-http-router.entrypoints=https"
+      - "traefik.http.routers.oauth-http-router.rule=Host(`oauth.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.oauth-http-router.middlewares=chain-oauth@file"
+      - "traefik.http.routers.oauth-http-router.service=oauth-http-service"
+      - "traefik.http.services.oauth-http-service.loadbalancer.server.port=4181"

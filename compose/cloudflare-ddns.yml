@@ -1,0 +1,21 @@
+services:
+  ########################################################################
+  # Cloudflare DDNS - Updater for cloudflare DDNS
+  ########################################################################
+  cf-ddns:
+    container_name: cf-ddns
+    image: oznu/cloudflare-ddns:latest
+    secrets:
+      - cloudflare_api_token
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    environment:
+      - API_KEY_FILE=/run/secrets/cloudflare_api_token
+      - ZONE=$DOMAINNAME_CLOUD_SERVER
+      - PROXIED=true
+      - RRTYPE=A
+      - DELETE_ON_STOP=false
+      - DNS_SERVER=1.1.1.1

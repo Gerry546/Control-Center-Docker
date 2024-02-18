@@ -1,0 +1,31 @@
+services:
+  ########################################################################
+  # File Browser - Explorer
+  ########################################################################
+  filebrowser:
+    image: filebrowser/filebrowser:s6
+    container_name: filebrowser
+    ports:
+      - "$FILEBROWSER_PORT:80"
+    volumes:
+      - $DOCKERDIR/appdata/filebrowser:/config
+      - $EXTDRIVE:/srv
+      - $DOCKERDIR/appdata/filebrowser/database:/database/
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Access
+      - "traefik.http.routers.filebrowser-http-router.entrypoints=https"
+      - "traefik.http.routers.filebrowser-http-router.rule=Host(`fb.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.filebrowser-http-router.tls=true"
+      - "traefik.http.routers.filebrowser-http-router.middlewares=chain-oauth@file"
+      - "traefik.http.routers.filebrowser-http-router.service=filebrowser-svc"
+      - "traefik.http.services.filebrowser-svc.loadbalancer.server.port=80"

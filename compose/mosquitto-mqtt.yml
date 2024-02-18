@@ -1,0 +1,24 @@
+services:
+  ########################################################################
+  # MQTT Broker
+  ########################################################################
+  mosquitto-mqtt:
+    container_name: mosquitto-mqtt
+    image: eclipse-mosquitto:latest
+    networks:
+      home_internal:
+        ipv4_address: $MOSQUITTO_IP # You can specify a static IP
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    volumes:
+      - $DOCKERDIR/appdata/mosquitto:/mosquitto
+      - $DOCKERDIR/appdata/mosquitto/data:/mosquitto/data
+      - $DOCKERDIR/appdata/mosquitto/log:/mosquitto/log
+    ports:
+      - $MQTTBROKER_PORT1:1883
+      - $MQTTBROKER_PORT2:9001
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID

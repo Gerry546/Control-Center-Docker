@@ -1,0 +1,61 @@
+services:
+  ########################################################################
+  # Guacd - Guacamole daemon
+  ########################################################################
+  guacd:
+    image: guacamole/guacd
+    container_name: guacd
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  ########################################################################
+  # Guacamole - Remote desktop, SSH, on Telnet on any HTML5 Browser
+  ########################################################################
+  # Create all databases and tables first
+  guacamole:
+    image: guacamole/guacamole:latest
+    container_name: guacamole
+    environment:
+      GUACD_HOSTNAME: guacd
+      MYSQL_HOSTNAME: mariadb-guacemole
+      MYSQL_PORT: $GUACDB_PORT
+      MYSQL_DATABASE: guacamole
+      MYSQL_USER: $GUAC_MYSQL_USER
+      MYSQL_PASSWORD: $GUACEMOLE_PASSWORD
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Access
+      - "traefik.http.routers.guacamole-http-router.entrypoints=https"
+      - "traefik.http.routers.guacamole-http-router.rule=Host(`guacamole.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.guacamole-http-router.tls=true"
+      - "traefik.http.routers.guacamole-http-router.middlewares=chain-oauth@file"
+      - "traefik.http.middlewares.add-guacamole.addPrefix.prefix=/guacamole"
+      - "traefik.http.routers.guacamole-http-router.service=guacamole-http-service"
+      - "traefik.http.services.guacamole-http-service.loadbalancer.server.port=8080"
+
+  ########################################################################
+  # MariaDB - MySQL Database for Guacamole
+  ########################################################################
+  mariadb-guacemole:
+    container_name: mariadb-guacemole
+    image: lscr.io/linuxserver/mariadb:latest
+    volumes:
+      - $DOCKERDIR/appdata/mariadb-guacemole/data:/config
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      MYSQL_ROOT_PASSWORD: $GUACEMOLE_PASSWORD

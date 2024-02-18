@@ -1,0 +1,29 @@
+services:
+  ########################################################################
+  # Dozzle - Runtime insight in running containers
+  ########################################################################
+  dozzle:
+    container_name: dozzle
+    image: amir20/dozzle:latest
+    networks:
+      - home_internal
+      - socket_proxy
+    environment:
+      DOZZLE_LEVEL: info
+      DOZZLE_TAILSIZE: 300
+      DOZZLE_FILTER: "status=running"
+      DOCKER_HOST: tcp://socket-proxy:2375
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.dozzle-http-router.entrypoints=https"
+      - "traefik.http.routers.dozzle-http-router.rule=Host(`dozzle.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.dozzle-http-router.tls=true"
+      - "traefik.http.routers.dozzle-http-router.middlewares=chain-oauth@file"
+      - "traefik.http.routers.dozzle-http-router.service=dozzle-http-service"
+      - "traefik.http.services.dozzle-http-service.loadbalancer.server.port=8080"
+      ## Watchtower manual update
+      - "com.centurylinklabs.watchtower.enable=true"

@@ -1,13 +1,10 @@
-version: "3.9"
-
-########################################################################
-########################### SERVICES ###################################
-########################################################################
 services:
   yocto-local:
     container_name: yocto-local
     image: gitea.estalor.com/tom/yocto-builder:latest
     tty: true
+    networks:
+      - home_internal
     ports:
       - "$YOCTO_TOASTER_PORT:8000"
       - "$YOCTO_VNC_PORT:5900"
@@ -15,7 +12,7 @@ services:
       - "$YOCTO_SSH_PORT:2222"
     security_opt:
       - no-new-privileges=true
-    restart: always
+    restart: unless-stopped
     volumes:
       - /cache:/cache
       - $YOCTO_PROJECT_PATH:$YOCTO_PROJECT_PATH

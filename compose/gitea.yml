@@ -1,0 +1,100 @@
+services:
+  ########################################################################
+  # Gitea
+  ########################################################################
+  gitea:
+    image: gitea/gitea:latest
+    container_name: gitea
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      GITEA__DATABASE__DB_TYPE: mysql
+      GITEA__DATABASE__HOST: mariadb-gitea:3306
+      GITEA__DATABASE__NAME: gitea
+      GITEA__DATABASE__USER: gitea
+      GITEA__DATABASE__PASSWD: gitea
+      GITEA__ADMIN__USER: $GITEA_ADMIN_USER
+      GITEA__ADMIN__EMAIL: $GITEA_ADMIN_EMAIL
+      GITEA__ADMIN__PASSWORD: $GITEA_ADMIN_PASS
+    depends_on:
+      - mariadb-gitea
+    restart: unless-stopped
+    networks:
+      gitea:
+      home_internal:
+          ipv4_address: $GITEA_IP # You can specify a static IP
+    volumes:
+      - ${DOCKERDIR}/appdata/gitea:/data
+    ports:
+      - "$GITEA_HTTP_PORT:3000"
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Access
+      - "traefik.http.routers.gitea-http-router.entrypoints=https"
+      - "traefik.http.routers.gitea-http-router.rule=Host(`gitea.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.gitea-http-router.tls=true"
+      - "traefik.http.routers.gitea-http-router.priority=99"
+      - "traefik.http.routers.gitea-http-router.middlewares=chain-oauth@file"
+      - "traefik.http.routers.gitea-http-router.service=gitea-http-service"
+      - "traefik.http.services.gitea-http-service.loadbalancer.server.port=3000"
+      ## Docker access
+      - "traefik.http.routers.gitea-docker-router.entrypoints=https"
+      - "traefik.http.routers.gitea-docker-router.priority=100"
+      - "traefik.http.routers.gitea-docker-router.rule=Host(`gitea.$DOMAINNAME_CLOUD_SERVER`) && (ClientIP(`$HOST_IP`, `172.0.0.0/8`) || PathPrefix(`/v2/`))"
+      - "traefik.http.routers.gitea-docker-router.tls=true"
+      - "traefik.http.routers.gitea-docker-router.middlewares=chain-no-auth@file"
+      - "traefik.http.routers.gitea-docker-router.service=gitea-docker-service"
+      - "traefik.http.services.gitea-docker-service.loadbalancer.server.port=3000"
+      # SSH Access
+      - 'traefik.tcp.routers.gitlab-ssh-router.entrypoints=ssh'
+      - 'traefik.tcp.routers.gitlab-ssh-router.rule=HostSNI(`*`)'
+      - 'traefik.tcp.routers.gitlab-ssh-router.service=gitlab-ssh-service'
+      - 'traefik.tcp.services.gitlab-ssh-service.loadbalancer.server.port=22'
+
+  ########################################################################
+  # Gitea Runner
+  ########################################################################
+  gitea-runner:
+    image: gitea/act_runner:nightly
+    container_name: gitea-runner
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    environment:
+      # DOCKER_HOST: tcp://socket-proxy:2375
+      CONFIG_FILE: /config.yaml
+      GITEA_INSTANCE_URL: "https://gitea.$DOMAINNAME_CLOUD_SERVER"
+      GITEA_RUNNER_REGISTRATION_TOKEN: "${REGISTRATION_TOKEN}"
+      GITEA_RUNNER_NAME: "${RUNNER_NAME}"
+    depends_on:
+      - gitea
+    volumes:
+      - $DOCKERDIR/appdata/gitea-runner/config.yaml:/config.yaml
+      - $DOCKERDIR/appdata/gitea-runner/data:/data
+      - $YOCTOCACHEDIR:/cache
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  ########################################################################
+  # MariaDB - MySQL Database for Gitea
+  ########################################################################
+  mariadb-gitea:
+    container_name: mariadb-gitea
+    image: lscr.io/linuxserver/mariadb:latest
+    volumes:
+      - $DOCKERDIR/appdata/mariadb-gitea/data:/config
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      MYSQL_ROOT_PASSWORD: $GITEA_ROOT_PASSWORD
+      MYSQL_DATABASE: gitea
+      MYSQL_USER: $GITEA_MYSQL_USER
+      MYSQL_PASSWORD: $GITEA_PASSWORD

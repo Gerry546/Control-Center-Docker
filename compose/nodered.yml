@@ -1,0 +1,32 @@
+services:
+  ########################################################################
+  # NodeRed
+  ########################################################################
+  nodered:
+    container_name: nodered
+    image: nodered/node-red:latest
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    volumes:
+      - $DOCKERDIR/appdata/nodered/data:/data
+    ports:
+      - "$NODERED_PORT:1880"
+    depends_on:
+      - home-assistant
+      - mosquitto-mqtt
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Access
+      - "traefik.http.routers.nodered-http-router.entrypoints=https"
+      - "traefik.http.routers.nodered-http-router.rule=Host(`nodered.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.nodered-http-router.tls=true"
+      - "traefik.http.routers.nodered-http-router.middlewares=chain-oauth@file"
+      - "traefik.http.routers.nodered-http-router.service=nodered-http-service"
+      - "traefik.http.services.nodered-http-service.loadbalancer.server.port=1880"

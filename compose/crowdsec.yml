@@ -1,0 +1,53 @@
+services:
+  ########################################################################
+  # Crowdsec - Open-source & collaborative security IPS
+  ########################################################################
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    container_name: crowdsec
+    ports:
+      - "$CROWDSEC_PORT:8080"
+      # - "$CROWDSEC_PROMETHEUS_EXPORT:6060" # For metrics export to Prometheus database.
+      # - "$ZEROTIER_IP_WEBSERVER:$CROWDSEC_PROMETHEUS_EXPORT:6060" # If you don't use ZeroTier remove use just $CROWDSEC_PROMETHEUS_EXPORT:6060
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    environment:
+      COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/iptables crowdsecurity/linux crowdsecurity/sshd"
+      GID: "${GID-1000}"
+      CUSTOM_HOSTNAME: $DOMAINNAME
+    volumes:
+      - $DOCKERDIR/logs/cloudserver:/logs/web:ro
+      - /var/log:/var/log:ro
+      - $DOCKERDIR/appdata/crowdsec/data:/var/lib/crowdsec/data
+      - $DOCKERDIR/appdata/crowdsec/config:/etc/crowdsec
+
+  ########################################################################
+  # MariaDB - MyQSL Database for Crowdsec
+  ########################################################################
+  mariadb-crowdsec:
+    container_name: mariadb-crowdsec
+    image: lscr.io/linuxserver/mariadb:latest
+    volumes:
+      - $DOCKERDIR/appdata/mariadb-crowdsec/data:/config
+      # - $DOCKERDIR/shared/init:/docker-entrypoint-initdb.d
+      - $DOCKERDIR/shared/init/init.sql:/data/application/init.sql
+    networks:
+      home_internal:
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    secrets:
+      - crowdsec_mysql_user
+      - crowdsec_mysql_password
+      - mysql_root_password
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      FILE__MYSQL_ROOT_PASSWORD: /run/secrets/mysql_root_password # Note FILE__ (double underscore) - Issue #127
+      MYSQL_DATABASE: crowdsec
+      MYSQL_USER: /run/secrets/crowdsec_mysql_user
+      MYSQL_PASSWORD: /run/secrets/crowdsec_mysql_password

@@ -1,0 +1,33 @@
+services:
+  ########################################################################
+  # HomeAssistant
+  ########################################################################
+  home-assistant:
+    container_name: home-assistant
+    image: ghcr.io/home-assistant/home-assistant:stable
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - $HAHOMEDIR:/config
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    security_opt:
+      - no-new-privileges:true
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+    restart: unless-stopped
+    networks:
+      home_internal:
+        ipv4_address: $HOMEASSISTANT_INTERNAL_IP # Otherwise NodeRed won't know where to look
+      dockervlan:
+        ipv4_address: $HOMEASSISTANT_EXTERNAL_IP # IP address inside the defined rangeIp
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Access
+      - "traefik.http.routers.homeassistant-http-router.entrypoints=https"
+      - "traefik.http.routers.homeassistant-http-router.rule=Host(`homeassistant.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.homeassistant-http-router.tls=true"
+      - "traefik.http.routers.homeassistant-http-router.middlewares=chain-oauth@file"
+      - "traefik.http.routers.homeassistant-http-router.service=homeassistant-http-service"
+      - "traefik.http.services.homeassistant-http-service.loadbalancer.server.port=8123"

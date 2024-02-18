@@ -1,0 +1,73 @@
+version: "3.9"
+
+########################################################################
+########################### NETWORKS ###################################
+########################################################################
+networks:
+  gitea:
+    external: false
+  home_internal:
+    name: home_internal
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.89.0/24
+  socket_proxy:
+    name: socket_proxy
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.91.0/24
+  dockervlan:
+    name: dockervlan
+    driver: macvlan
+    driver_opts:
+      parent: enp3s0 # using ifconfig
+    ipam:
+      config:
+        - subnet: "192.168.1.0/24"
+          ip_range: "$HOMEASSISTANT_EXTERNAL_IP/32"
+          gateway: "192.168.1.1"
+
+########################################################################
+########################### Secrets ####################################
+########################################################################
+secrets:
+  cloudflare_api_key:
+    file: $DOCKERDIR/secrets/cloudflare_api_key
+  cloudflare_api_token:
+    file: $DOCKERDIR/secrets/cloudflare_api_token
+  cloudflare_email:
+    file: $DOCKERDIR/secrets/cloudflare_email
+  crowdsec_mysql_password:
+    file: $DOCKERDIR/secrets/crowdsec_mysql_password
+  crowdsec_mysql_user:
+    file: $DOCKERDIR/secrets/crowdsec_mysql_user
+  mysql_root_password:
+    file: $DOCKERDIR/secrets/mysql_root_password
+  traefik_forward_auth:
+    file: $DOCKERDIR/secrets/traefik_forward_auth
+
+########################################################################
+########################### Services ###################################
+########################################################################
+include:
+  - compose/cloudflare-bouncer.yml
+  - compose/cloudflare-ddns.yml
+  - compose/crowdsec.yml
+  - compose/docker-gc.yml
+  - compose/dozzle.yml
+  - compose/file-browser.yml
+  - compose/gitea.yml
+  - compose/guacamole.yml # TODO
+  - compose/homeassistant.yml
+  - compose/homepage.yml
+  - compose/mosquitto-mqtt.yml
+  - compose/nodered.yml
+  - compose/oauth.yml
+  - compose/portainer.yml
+  - compose/socket-proxy.yml
+  - compose/traefik-bouncer.yml
+  - compose/traefik.yml
+  - compose/vscode.yml
+  - compose/yocto.yml
