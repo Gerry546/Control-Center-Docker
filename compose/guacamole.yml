@@ -20,7 +20,7 @@ services:
     container_name: guacamole
     environment:
       GUACD_HOSTNAME: guacd
-      MYSQL_HOSTNAME: mariadb-guacemole
+      MYSQL_HOSTNAME: mariadb-guacamole
       MYSQL_PORT: $GUACDB_PORT
       MYSQL_DATABASE: guacamole
       MYSQL_USER: $GUAC_MYSQL_USER
@@ -44,11 +44,11 @@ services:
   ########################################################################
   # MariaDB - MySQL Database for Guacamole
   ########################################################################
-  mariadb-guacemole:
-    container_name: mariadb-guacemole
+  mariadb-guacamole:
+    container_name: mariadb-guacamole
     image: lscr.io/linuxserver/mariadb:latest
     volumes:
-      - $DOCKERDIR/appdata/mariadb-guacemole/data:/config
+      - $DOCKERDIR/appdata/mariadb-guacamole/data:/config
     networks:
       home_internal:
     security_opt:
