@@ -4,7 +4,7 @@ services:
     image: gitea.estalor.com/tom/yocto-builder:latest
     tty: true
     networks:
-      - home_internal
+      home_internal:
     ports:
       - "$YOCTO_TOASTER_PORT:8000"
       - "$YOCTO_VNC_PORT:5900"
@@ -17,4 +17,4 @@ services:
       - /cache:/cache
       - $YOCTO_PROJECT_PATH:$YOCTO_PROJECT_PATH
     environment:
-      - TEMPLATECONF=$YOCTO_PROJECT_PATH/layers/meta-estalor/conf/templates/estalor
+      - TEMPLATECONF=$YOCTO_TEMPLATE_CONF
