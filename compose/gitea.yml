@@ -41,7 +41,8 @@ services:
       ## Docker access
       - "traefik.http.routers.gitea-docker-router.entrypoints=https"
       - "traefik.http.routers.gitea-docker-router.priority=100"
-      - "traefik.http.routers.gitea-docker-router.rule=Host(`gitea.$DOMAINNAME_CLOUD_SERVER`) && (ClientIP(`$HOST_IP`, `172.0.0.0/8`) || PathPrefix(`/v2/`))"
+      # # - "traefik.http.routers.gitea-docker-router.rule=Host(`gitea.$DOMAINNAME_CLOUD_SERVER`) && (ClientIP(`$HOST_IP`, `172.0.0.0/8`) || PathPrefix(`/v2/`))"
+      - "traefik.http.routers.gitea-docker-router.rule=Host(`gitea.$DOMAINNAME_CLOUD_SERVER`) && (ClientIP(`$HOST_IP`, `172.0.0.0/8`))"
       - "traefik.http.routers.gitea-docker-router.tls=true"
       - "traefik.http.routers.gitea-docker-router.middlewares=chain-no-auth@file"
       - "traefik.http.routers.gitea-docker-router.service=gitea-docker-service"
