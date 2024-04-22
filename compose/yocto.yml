@@ -6,7 +6,7 @@ services:
     networks:
       home_internal:
       # dockervlan:
-      #   ipv4_address: $HOMEASSISTANT_TEST_EXTERNAL_IP
+        # ipv4_address: $HOMEASSISTANT_TEST_EXTERNAL_IP
     ports:
       - "$YOCTO_TOASTER_PORT:8000"
       - "$YOCTO_VNC_PORT:5900"
