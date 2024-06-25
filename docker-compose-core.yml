@@ -57,7 +57,7 @@ include:
   - compose/dozzle.yml
   - compose/file-browser.yml
   - compose/gitea.yml
-  - compose/guacamole.yml # TODO
+  - compose/guacamole.yml
   - compose/homeassistant.yml
   - compose/homepage.yml
   - compose/mosquitto-mqtt.yml
@@ -68,4 +68,5 @@ include:
   - compose/traefik-bouncer.yml
   - compose/traefik.yml
   - compose/vscode.yml
+  - compose/wekan.yml
   # - compose/yocto.yml
